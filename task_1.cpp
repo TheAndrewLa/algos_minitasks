@@ -14,14 +14,14 @@ using ulong = unsigned long;
 // First and second is for input numbers and the third one is for expecting result (divided & remainder)
 using test_unit = std::tuple<string, string, string>;
 
-bool greater_equal(string x, string y) {
+bool greater_or_equal(string x, string y) {
     if (x.length() == y.length())
         return x.compare(y) >= 0;
 
     return x.length() >= y.length();
 }
 
-bool less_equal(string x, string y) {
+bool less_or_equal(string x, string y) {
     if (x.length() == y.length())
         return x.compare(y) <= 0;
 
@@ -79,7 +79,7 @@ string sub(string x, string y) {
     string res;
     ulong memory = 0;
 
-    if (less_equal(x, y))
+    if (less_or_equal(x, y))
         return "0";
 
     // Make numbers be same length
@@ -127,12 +127,24 @@ string sub(string x, string y) {
 }
 
 string divide(string x, string y) {
-    string result = "0";
+    // Task definitions
+    // Length of x is N
+    // Length of y is M
+
+    string result {"0"};
     string x_current {x};
 
-    while (greater_equal(x_current, y)) {
+    while (greater_or_equal(x_current, y)) {
+        // Each loop iteration performs one subtraction and one addition
+        // Time complexity of subtraction is O(min{len(x_current), len(y)}) = O(M), because x_current is greater than y
+        // Time complexity of addition is O(min{len(result), len("1")}) = O(1)
         x_current = sub(x_current, y);
         result = add(result, "1");
+
+        // Well, time complexity of each loop iteration is O(M)
+        // It's pretty obvious that we will do (N - M) iterations of loop (while we can do subtraction)
+        // This equation makes sense: N - M = O(N)
+        // So the complexity of all algorithm is O(M * N)
     }
 
     return result;
