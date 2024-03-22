@@ -33,8 +33,8 @@ class MathParser {
 
     ~MathParser() = default;
 
-    isize calculate() const noexcept;
-    std::string polish_notation() const noexcept;
+    i16 calculate() const noexcept;
+    std::string to_polish_notation() const noexcept;
 
     private:
     using operator_type = u16;
@@ -47,6 +47,8 @@ class MathParser {
 
     // WARNING: SYSTEM PROGRAMMING STUFF!!!
 
+    // Bytecode explanation 
+
     // Operator type takes 2 bytes
     // Using this method we can handle 16 operators (enough for simple arithmetic parser)
 
@@ -54,6 +56,19 @@ class MathParser {
     // | operator_code | - | priority | - | associativity | - |  arity  |
     // |     4 bits    | - |  4 bits  | - |    2 bits     | - |  2 bits |
 
+    // Control type (it just brackets) takes also 2 bytes
+
+    // Format of control:
+    // |   order (closing/opening)  | - |   type (round, box, curve)    |
+    // |         8 bits             | - |         8 bits                |
+
+    // Operand type takes also 2 bytes (it's just a signed 16-bit number)
+
+    // Format of operand
+    // | actual_value |
+    // |   16 bits    |
+
+    // Operators
     static constexpr char* operators[] {
         "+", "-", "*", "/", "%",
         "&", "^", "|", "~",
@@ -78,12 +93,7 @@ class MathParser {
         1, 1,
     };
 
-    // Control type (it just brackets) takes also 2 bytes
-
-    // Format of control:
-    // |   order (closing/opening)  | - |   type (round, box, curve)    |
-    // |         8 bits             | - |         8 bits                |
-
+    // Brackets
     static constexpr char* brackets[] {
         "(", "[", "{",
         ")", "]", "}",
@@ -94,13 +104,6 @@ class MathParser {
         1, 1, 1,
     };
 
-    // Operand type takes also 2 bytes (it's just a signed 16-bit number)
-
-    // Format of operand
-    // | actual_value |
-    // |   16 bits    |
-
-
     // Every bytecode command has 4 bytes size
     struct SyntaxUnit {
         UnitTypes type;
@@ -110,6 +113,17 @@ class MathParser {
             operand_type oprd;
             control_type ctrl;
         };
+    };
+
+    struct WritingUnit {
+        std::string str;
+        usize priority;
+    };
+
+    struct WritingUnitComparator {
+        constexpr bool operator() (const WritingUnit& left, const WritingUnit& right) {
+            return (left.priority > right.priority);
+        }
     };
 
     std::vector<SyntaxUnit> syntax_;

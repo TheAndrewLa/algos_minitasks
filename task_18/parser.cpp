@@ -134,12 +134,12 @@ MathParser::MathParser(const std::string& expression) {
     }
 }
 
-isize MathParser::calculate() const noexcept {
-    isize result = 0;
+i16 MathParser::calculate() const noexcept {
+    i16 result = 0;
     return result;
 }
 
-std::string MathParser::polish_notation() const noexcept {
+std::string MathParser::to_polish_notation() const noexcept {
     std::ostringstream result;
     return result.str();
 }
