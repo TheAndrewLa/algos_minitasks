@@ -3,8 +3,7 @@
 #include <sstream>
 
 #include <vector>
-#include <unordered_map>
-#include <tuple>
+#include <queue>
 
 #include <stdexcept>
 
@@ -32,6 +31,8 @@ class MathParser {
     MathParser(MathParser&& ref) = delete;
 
     ~MathParser() = default;
+
+    void optimize_bytecode() noexcept;
 
     i16 calculate() const noexcept;
     std::string to_polish_notation() const noexcept;
@@ -65,11 +66,11 @@ class MathParser {
     // Operand type takes also 2 bytes (it's just a signed 16-bit number)
 
     // Format of operand
-    // | actual_value |
+    // | number_value |
     // |   16 bits    |
 
     // Operators
-    static constexpr char* operators[] {
+    static constexpr const char* operators[] {
         "+", "-", "*", "/", "%",
         "&", "^", "|", "~",
         "<<", ">>",
@@ -94,7 +95,7 @@ class MathParser {
     };
 
     // Brackets
-    static constexpr char* brackets[] {
+    static constexpr const char* brackets[] {
         "(", "[", "{",
         ")", "]", "}",
     };
@@ -113,17 +114,6 @@ class MathParser {
             operand_type oprd;
             control_type ctrl;
         };
-    };
-
-    struct WritingUnit {
-        std::string str;
-        usize priority;
-    };
-
-    struct WritingUnitComparator {
-        constexpr bool operator() (const WritingUnit& left, const WritingUnit& right) {
-            return (left.priority > right.priority);
-        }
     };
 
     std::vector<SyntaxUnit> syntax_;

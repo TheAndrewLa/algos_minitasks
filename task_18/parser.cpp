@@ -31,7 +31,18 @@ namespace std {
     }
 }
 
-static bool try_merge(std::string& current, char next) {
+struct WritingUnit {
+    std::string str;
+    isize priority;
+};
+
+struct WritingUnitComparator {
+    constexpr bool operator() (const WritingUnit& left, const WritingUnit& right) {
+        return (left.priority > right.priority);
+    }
+};
+
+static bool merge_tokens(std::string& current, char next) {
     if (std::is_number(current) && std::isdigit(next)) {
         current += next;
         return true;
@@ -73,11 +84,11 @@ MathParser::MathParser(const std::string& expression) {
     for (auto i = str_tokens.begin(); i < str_tokens.end() - 1; i++) {
         auto next = i + 1;
 
-        while (try_merge(*i, next->at(0)))
+        while (merge_tokens(*i, next->at(0)))
             str_tokens.erase(next);
     }
 
-    // Convert string to syntax unit structs
+    // Convert string to syntax unit structs (bytecode itself)
 
     for (const auto& i : str_tokens) {
         bool flag = true;
@@ -95,9 +106,9 @@ MathParser::MathParser(const std::string& expression) {
             if (i == *j) {
                 auto index = static_cast<u16>(std::distance(std::begin(operators), j));
 
-                u16 operation_code = (index & 0xF) << 12;
-                u16 operation_priority = (priority[index] & 0xF) << 4;
-                u16 operation_associativity = (associativities[index] & 0x3) << 2;
+                u16 operation_code = (index & 0xF) << 0xC;
+                u16 operation_priority = (priority[index] & 0xF) << 0x4;
+                u16 operation_associativity = (associativities[index] & 0x3) << 0x2;
                 u16 operation_arity = arity[index] & 0x3;
 
                 u16 operation_mask = operation_code | operation_priority | operation_associativity | operation_arity;
@@ -114,9 +125,9 @@ MathParser::MathParser(const std::string& expression) {
         for (auto j = std::begin(brackets); j < std::end(brackets) && flag; j++) {
             if (i == *j) {
                 auto index = static_cast<u16>(std::distance(std::begin(brackets), j));
-                
-                u16 bracket_order = (order[index] << 8) & 0xFF00;
-                u16 bracket_type = (index % 3) & 0x00FF;
+
+                u16 bracket_order = (order[index] & 0xFF) << 0x8;
+                u16 bracket_type = (index % 0x3) & 0x00FF;
 
                 u16 bracket_mask = bracket_order | bracket_type;
 
@@ -134,6 +145,9 @@ MathParser::MathParser(const std::string& expression) {
     }
 }
 
+void MathParser::optimize_bytecode() noexcept {}
+
+// TODO: implement it without queue (recursive algorithm)
 i16 MathParser::calculate() const noexcept {
     i16 result = 0;
     return result;
@@ -141,5 +155,14 @@ i16 MathParser::calculate() const noexcept {
 
 std::string MathParser::to_polish_notation() const noexcept {
     std::ostringstream result;
+
+    // A forward-iterator (pushing tokens to the queue with left associativity)
+    for (auto i = this->syntax_.cbegin(); i < this->syntax_.cend(); i++) {
+    }
+
+    // A reverse-iterator (pushing tokens to the queue with right associativity)
+    for (auto i = this->syntax_.crbegin(); i < this->syntax_.crend(); i++) {
+    }
+
     return result.str();
 }
