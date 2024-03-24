@@ -3,7 +3,7 @@
 #include <sstream>
 
 #include <vector>
-#include <queue>
+#include <stack>
 
 #include <stdexcept>
 
@@ -32,8 +32,6 @@ class MathParser {
 
     ~MathParser() = default;
 
-    void optimize_bytecode() noexcept;
-
     i16 calculate() const noexcept;
     std::string to_polish_notation() const noexcept;
 
@@ -47,21 +45,20 @@ class MathParser {
     };
 
     // WARNING: SYSTEM PROGRAMMING STUFF!!!
-
-    // Bytecode explanation 
+    // EXPLANATION OF MY BYTECODE
 
     // Operator type takes 2 bytes
     // Using this method we can handle 16 operators (enough for simple arithmetic parser)
 
     // Format of operator:
     // | operator_code | - | priority | - | associativity | - |  arity  |
-    // |     4 bits    | - |  4 bits  | - |    2 bits     | - |  2 bits |
+    // |     4 bits    | - |  4 bits  | - |    4 bits     | - |  4 bits |
 
-    // Control type (it just brackets) takes also 2 bytes
+    // Control type (just brackets) takes also 2 bytes
 
     // Format of control:
-    // |   order (closing/opening)  | - |   type (round, box, curve)    |
-    // |         8 bits             | - |         8 bits                |
+    // |   type (round, box, curve)  | - |   order (closing/opening)     |
+    // |         8 bits              | - |         8 bits                |
 
     // Operand type takes also 2 bytes (it's just a signed 16-bit number)
 
@@ -70,6 +67,8 @@ class MathParser {
     // |   16 bits    |
 
     // Operators
+    static const usize operators_count = 11;
+
     static constexpr const char* operators[] {
         "+", "-", "*", "/", "%",
         "&", "^", "|", "~",
@@ -95,9 +94,16 @@ class MathParser {
     };
 
     // Brackets
+    static const usize brackets_count = 6;
+
     static constexpr const char* brackets[] {
         "(", "[", "{",
         ")", "]", "}",
+    };
+
+    static constexpr u16 type[] {
+        0, 1, 2,
+        0, 1, 2,
     };
 
     static constexpr u16 order[] {
@@ -114,6 +120,32 @@ class MathParser {
             operand_type oprd;
             control_type ctrl;
         };
+
+        SyntaxUnit() = delete;
+        ~SyntaxUnit() = default;
+
+        std::string to_string() const noexcept {
+            switch (this->type) {                
+                case (UnitTypes::OPERATOR): {
+                    return {MathParser::operators[static_cast<usize>(this->oprd >> 0xC)]};
+                }; break;
+
+                case (UnitTypes::OPERAND): {
+                    return std::to_string(static_cast<i32>(this->oprt));
+                }; break;
+
+                case (UnitTypes::CONTROL): {
+                    auto index = static_cast<usize>(this->ctrl >> 0x8);
+                    index += 3 * static_cast<usize>(this->ctrl & 0xF);
+
+                    return {MathParser::brackets[index]};
+                }; break;
+
+                default: {
+                    throw std::logic_error("Bad syntax unit instance!");
+                }
+            }
+        }
     };
 
     std::vector<SyntaxUnit> syntax_;

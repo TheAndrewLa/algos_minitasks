@@ -31,17 +31,6 @@ namespace std {
     }
 }
 
-struct WritingUnit {
-    std::string str;
-    isize priority;
-};
-
-struct WritingUnitComparator {
-    constexpr bool operator() (const WritingUnit& left, const WritingUnit& right) {
-        return (left.priority > right.priority);
-    }
-};
-
 static bool merge_tokens(std::string& current, char next) {
     if (std::is_number(current) && std::isdigit(next)) {
         current += next;
@@ -76,16 +65,14 @@ MathParser::MathParser(const std::string& expression) {
             continue;
 
         else if (pos == std::string::npos)
-            throw std::invalid_argument("Unresolved symbol in expression: " + std::string {i});
+            throw std::invalid_argument("Unresolved symbol: " + std::string {i});
 
         str_tokens.push_back(std::string {i});
     }
 
-    for (auto i = str_tokens.begin(); i < str_tokens.end() - 1; i++) {
-        auto next = i + 1;
-
-        while (merge_tokens(*i, next->at(0)))
-            str_tokens.erase(next);
+    for (usize i = 0; i < str_tokens.size() - 1; i++) {
+        while (i + 1 < str_tokens.size() && merge_tokens(str_tokens[i], str_tokens[i + 1][0]))
+            str_tokens.erase(str_tokens.cbegin() + i + 1);
     }
 
     // Convert string to syntax unit structs (bytecode itself)
@@ -96,44 +83,40 @@ MathParser::MathParser(const std::string& expression) {
         if (std::is_number(i)) {
             this->syntax_.push_back({
                 .type = UnitTypes::OPERAND,
-                .oprd = static_cast<u16>(std::stoi(i))
+                .oprd = static_cast<u16>(std::stoi(i)),
             });
 
             flag = false;
         }
 
-        for (auto j = std::begin(operators); j < std::end(operators) && flag; j++) {
-            if (i == *j) {
-                auto index = static_cast<u16>(std::distance(std::begin(operators), j));
-
-                u16 operation_code = (index & 0xF) << 0xC;
-                u16 operation_priority = (priority[index] & 0xF) << 0x4;
-                u16 operation_associativity = (associativities[index] & 0x3) << 0x2;
-                u16 operation_arity = arity[index] & 0x3;
+        for (auto j = 0; j < operators_count && flag; j++) {
+            if (i == operators[j]) {
+                u16 operation_code = j << 0xC;
+                u16 operation_priority = priority[j] << 0x4;
+                u16 operation_associativity = associativities[j] << 0x2;
+                u16 operation_arity = arity[j];
 
                 u16 operation_mask = operation_code | operation_priority | operation_associativity | operation_arity;
 
                 this->syntax_.push_back({
                     .type = UnitTypes::OPERATOR,
-                    .oprt = operation_mask
+                    .oprt = operation_mask,
                 });
 
                 flag = false;
             }
         }
 
-        for (auto j = std::begin(brackets); j < std::end(brackets) && flag; j++) {
-            if (i == *j) {
-                auto index = static_cast<u16>(std::distance(std::begin(brackets), j));
-
-                u16 bracket_order = (order[index] & 0xFF) << 0x8;
-                u16 bracket_type = (index % 0x3) & 0x00FF;
+        for (auto j = 0; j < brackets_count && flag; j++) {
+            if (i == brackets[j]) {
+                u16 bracket_type = type[j] << 0x8;
+                u16 bracket_order = order[j];
 
                 u16 bracket_mask = bracket_order | bracket_type;
 
                 this->syntax_.push_back({
                     .type = UnitTypes::CONTROL,
-                    .ctrl = bracket_mask
+                    .ctrl = bracket_mask,
                 });
 
                 flag = false;
@@ -143,11 +126,15 @@ MathParser::MathParser(const std::string& expression) {
         if (flag)
             throw std::invalid_argument("Syntax error: " + i);
     }
+
+    // TODO: some preparations (removing brackets, prepare unary operations)
+
+    // TODO: check operators arity
+
+    // TODO: check brackets
 }
 
-void MathParser::optimize_bytecode() noexcept {}
-
-// TODO: implement it without queue (recursive algorithm)
+// TODO: implement it
 i16 MathParser::calculate() const noexcept {
     i16 result = 0;
     return result;
@@ -155,14 +142,57 @@ i16 MathParser::calculate() const noexcept {
 
 std::string MathParser::to_polish_notation() const noexcept {
     std::ostringstream result;
+    std::stack<SyntaxUnit> ops;
 
-    // A forward-iterator (pushing tokens to the queue with left associativity)
-    for (auto i = this->syntax_.cbegin(); i < this->syntax_.cend(); i++) {
+    for (const auto& i : this->syntax_) {
+        if (i.type == UnitTypes::OPERAND) {
+            result << i.oprd;
+            result << ' ';
+        }
+
+        else if (i.type == UnitTypes::CONTROL) {
+            u16 bracket_type = i.ctrl >> 0x8;
+            u16 bracket_order = i.ctrl & 0xFF;
+
+            if (bracket_order == 0) {
+                ops.push(i);
+            }
+            else {
+                u16 mask = i.ctrl | 0x1;
+
+                while (ops.top().type != UnitTypes::CONTROL && ops.top().ctrl != mask) {
+                    result << ops.top().to_string();
+                    result << ' ';
+                    
+                    ops.pop();
+                }
+
+                ops.pop();
+            }
+        }
+
+        else if (i.type == UnitTypes::OPERATOR) {
+            u16 op_priority = (i.oprt >> 0x8) & 0xF;
+            u16 op_associativity = (i.oprt >> 0x4) & 0xF;
+
+            while (!ops.empty() && ops.top().type == UnitTypes::OPERATOR && ((ops.top().oprt >> 0x8) & 0xF) > op_priority && ((ops.top().oprt >> 0x4) & 0xF) == 0x0) {
+                result << ops.top().to_string();
+                result << ' ';
+                ops.pop();
+            }
+
+            ops.push(i);
+        }
     }
 
-    // A reverse-iterator (pushing tokens to the queue with right associativity)
-    for (auto i = this->syntax_.crbegin(); i < this->syntax_.crend(); i++) {
+    while (!ops.empty()) {
+        result << ops.top().to_string();
+        result << ' ';
+
+        ops.pop();
     }
+
+    result << '\n';
 
     return result.str();
 }
