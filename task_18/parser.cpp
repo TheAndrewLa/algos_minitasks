@@ -127,10 +127,8 @@ MathParser::MathParser(const std::string& expression) {
             throw std::invalid_argument("Syntax error: " + i);
     }
 
-    // TODO: some preparations (removing brackets, prepare unary operations)
-
+    // TODO: some preparations & optimizations (especially unary operations)
     // TODO: check operators arity
-
     // TODO: check brackets
 }
 
@@ -146,8 +144,7 @@ std::string MathParser::to_polish_notation() const noexcept {
 
     for (const auto& i : this->syntax_) {
         if (i.type == UnitTypes::OPERAND) {
-            result << i.oprd;
-            result << ' ';
+            result << i.oprd << ' ';
         }
 
         else if (i.type == UnitTypes::CONTROL) {
@@ -161,9 +158,7 @@ std::string MathParser::to_polish_notation() const noexcept {
                 u16 mask = i.ctrl | 0x1;
 
                 while (ops.top().type != UnitTypes::CONTROL && ops.top().ctrl != mask) {
-                    result << ops.top().to_string();
-                    result << ' ';
-                    
+                    result << ops.top().to_string() << ' ';
                     ops.pop();
                 }
 
@@ -175,10 +170,17 @@ std::string MathParser::to_polish_notation() const noexcept {
             u16 op_priority = (i.oprt >> 0x8) & 0xF;
             u16 op_associativity = (i.oprt >> 0x4) & 0xF;
 
-            while (!ops.empty() && ops.top().type == UnitTypes::OPERATOR && ((ops.top().oprt >> 0x8) & 0xF) > op_priority && ((ops.top().oprt >> 0x4) & 0xF) == 0x0) {
-                result << ops.top().to_string();
-                result << ' ';
-                ops.pop();
+            if (op_associativity == 0) {
+                while (!ops.empty() && ops.top().type == UnitTypes::OPERATOR && ((ops.top().oprt >> 0x8) & 0xF) < op_priority) {
+                    result << ops.top().to_string() << ' ';
+                    ops.pop();
+                }
+            }
+            else if (op_associativity == 1) {
+                while (!ops.empty() && ops.top().type == UnitTypes::OPERATOR && ((ops.top().oprt >> 0x8) & 0xF) <= op_priority) {
+                    result << ops.top().to_string() << ' ';
+                    ops.pop();
+                }
             }
 
             ops.push(i);
@@ -186,13 +188,10 @@ std::string MathParser::to_polish_notation() const noexcept {
     }
 
     while (!ops.empty()) {
-        result << ops.top().to_string();
-        result << ' ';
-
+        result << ops.top().to_string() << ' ';
         ops.pop();
     }
 
     result << '\n';
-
     return result.str();
 }

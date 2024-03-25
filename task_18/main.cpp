@@ -2,13 +2,13 @@
 #include <iostream>
 
 int main(int, char**) {
-    MathParser parser {"1 & 2 | 3"};
+    MathParser parser {"(1 | 2) & 3"};
     std::cout << parser.to_polish_notation();
 
-    MathParser parser1 {"1 + 2 * 3"};
+    MathParser parser1 {"1 + 2 * 3 + 9 / 3"};
     std::cout << parser1.to_polish_notation();
 
-    MathParser parser2 {"-1 + 2 + 3"};
+    MathParser parser2 {"1 + 2 + 3"};
     std::cout << parser2.to_polish_notation();
     
     MathParser parser3 {"1 * (2 / 3)"};
