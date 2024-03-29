@@ -24,7 +24,6 @@ using isize = std::ptrdiff_t;
 class MathParser {
     public:
     MathParser() = delete;
-
     explicit MathParser(const std::string& expression);
 
     MathParser(const MathParser& ref) = delete;
@@ -40,7 +39,7 @@ class MathParser {
     using operand_type = u16;
     using control_type = u16;
 
-    enum class UnitTypes : u16 {
+    enum class SyntaxTypes : u16 {
         OPERATOR, OPERAND, CONTROL
     };
 
@@ -67,30 +66,37 @@ class MathParser {
     // |   16 bits    |
 
     // Operators
-    static const usize operators_count = 11;
+    static const usize operators_count = 12;
 
     static constexpr const char* operators[] {
         "+", "-", "*", "/", "%",
         "&", "^", "|", "~",
+        "**",
         "<<", ">>",
     };
 
+    // TODO: combine it into one array (magic with bits)
     static constexpr u16 priority[] {
-        2, 2, 1, 1, 1,
-        4, 5, 6, 0,
-        3, 3,
+        4, 4, 3, 3, 3,
+        6, 7, 8, 0,
+        2,
+        5, 5,
     };
+
+    static constexpr u16 operator_masks[] {};
 
     static constexpr u16 associativities[] {
         0, 0, 0, 0, 0,
         0, 0, 0, 1,
+        1,
         0, 0,
     };
 
     static constexpr u16 arity[] {
-        1, 1, 1, 1, 1,
-        1, 1, 1, 0,
-        1, 1,
+        2, 2, 2, 2, 2,
+        2, 2, 2, 1,
+        2,
+        2, 2,
     };
 
     // Brackets
@@ -101,6 +107,7 @@ class MathParser {
         ")", "]", "}",
     };
 
+    // TODO: compine it into one array (magic with bits)
     static constexpr u16 type[] {
         0, 1, 2,
         0, 1, 2,
@@ -113,7 +120,7 @@ class MathParser {
 
     // Every bytecode command has 4 bytes size
     struct SyntaxUnit {
-        UnitTypes type;
+        SyntaxTypes type;
 
         union {
             operator_type oprt;
@@ -122,27 +129,28 @@ class MathParser {
         };
 
         SyntaxUnit() = delete;
+        SyntaxUnit(const SyntaxUnit& unit) = default;
+        SyntaxUnit(SyntaxUnit&& unit) = default;
+
         ~SyntaxUnit() = default;
 
         std::string to_string() const noexcept {
-            switch (this->type) {                
-                case (UnitTypes::OPERATOR): {
+            switch (this->type) {
+                case (SyntaxTypes::OPERATOR): {
                     return {MathParser::operators[static_cast<usize>(this->oprd >> 0xC)]};
-                }; break;
+                }
 
-                case (UnitTypes::OPERAND): {
+                case (SyntaxTypes::OPERAND): {
                     return std::to_string(static_cast<i32>(this->oprt));
-                }; break;
+                }
 
-                case (UnitTypes::CONTROL): {
-                    auto index = static_cast<usize>(this->ctrl >> 0x8);
-                    index += 3 * static_cast<usize>(this->ctrl & 0xF);
-
+                case (SyntaxTypes::CONTROL): {
+                    auto index = static_cast<usize>(this->ctrl >> 0x8) + 3 * static_cast<usize>(this->ctrl & 0xF);
                     return {MathParser::brackets[index]};
-                }; break;
+                }
 
                 default: {
-                    throw std::logic_error("Bad syntax unit instance!");
+                    return "ERROR!";
                 }
             }
         }

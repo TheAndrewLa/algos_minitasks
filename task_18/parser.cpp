@@ -36,6 +36,10 @@ static bool merge_tokens(std::string& current, char next) {
         current += next;
         return true;
     }
+    else if (current == "*" && next == '*') {
+        current += next;
+        return true;
+    }
     else if (std::is_1sym_operation(current)) {
         return false;
     }
@@ -55,7 +59,7 @@ static bool merge_tokens(std::string& current, char next) {
 }
 
 MathParser::MathParser(const std::string& expression) {
-    std::string symbol_table {" 0123456789+-*/%<>&|~()[]{}"};
+    std::string symbol_table {" 0123456789+-*/%<>&|^~()[]{}"};
     std::vector<std::string> str_tokens;
 
     for (char i : expression) {
@@ -64,7 +68,7 @@ MathParser::MathParser(const std::string& expression) {
         if (pos == 0)
             continue;
 
-        else if (pos == std::string::npos)
+        else if (pos == symbol_table.npos)
             throw std::invalid_argument("Unresolved symbol: " + std::string {i});
 
         str_tokens.push_back(std::string {i});
@@ -82,7 +86,7 @@ MathParser::MathParser(const std::string& expression) {
 
         if (std::is_number(i)) {
             this->syntax_.push_back({
-                .type = UnitTypes::OPERAND,
+                .type = SyntaxTypes::OPERAND,
                 .oprd = static_cast<u16>(std::stoi(i)),
             });
 
@@ -92,14 +96,13 @@ MathParser::MathParser(const std::string& expression) {
         for (auto j = 0; j < operators_count && flag; j++) {
             if (i == operators[j]) {
                 u16 operation_code = j << 0xC;
-                u16 operation_priority = priority[j] << 0x4;
-                u16 operation_associativity = associativities[j] << 0x2;
+                u16 operation_priority = priority[j] << 0x8;
+                u16 operation_associativity = associativities[j] << 0x4;
                 u16 operation_arity = arity[j];
-
                 u16 operation_mask = operation_code | operation_priority | operation_associativity | operation_arity;
 
                 this->syntax_.push_back({
-                    .type = UnitTypes::OPERATOR,
+                    .type = SyntaxTypes::OPERATOR,
                     .oprt = operation_mask,
                 });
 
@@ -115,7 +118,7 @@ MathParser::MathParser(const std::string& expression) {
                 u16 bracket_mask = bracket_order | bracket_type;
 
                 this->syntax_.push_back({
-                    .type = UnitTypes::CONTROL,
+                    .type = SyntaxTypes::CONTROL,
                     .ctrl = bracket_mask,
                 });
 
@@ -127,7 +130,7 @@ MathParser::MathParser(const std::string& expression) {
             throw std::invalid_argument("Syntax error: " + i);
     }
 
-    // TODO: some preparations & optimizations (especially unary operations)
+    // Just for throwing exceptions (ha-ha)
     // TODO: check operators arity
     // TODO: check brackets
 }
@@ -140,14 +143,14 @@ i16 MathParser::calculate() const noexcept {
 
 std::string MathParser::to_polish_notation() const noexcept {
     std::ostringstream result;
-    std::stack<SyntaxUnit> ops;
+    std::stack<SyntaxUnit, std::vector<SyntaxUnit>> ops;
 
     for (const auto& i : this->syntax_) {
-        if (i.type == UnitTypes::OPERAND) {
+        if (i.type == SyntaxTypes::OPERAND) {
             result << i.oprd << ' ';
         }
 
-        else if (i.type == UnitTypes::CONTROL) {
+        else if (i.type == SyntaxTypes::CONTROL) {
             u16 bracket_type = i.ctrl >> 0x8;
             u16 bracket_order = i.ctrl & 0xFF;
 
@@ -157,7 +160,7 @@ std::string MathParser::to_polish_notation() const noexcept {
             else {
                 u16 mask = i.ctrl | 0x1;
 
-                while (ops.top().type != UnitTypes::CONTROL && ops.top().ctrl != mask) {
+                while (ops.top().type != SyntaxTypes::CONTROL && ops.top().ctrl != mask) {
                     result << ops.top().to_string() << ' ';
                     ops.pop();
                 }
@@ -166,21 +169,22 @@ std::string MathParser::to_polish_notation() const noexcept {
             }
         }
 
-        else if (i.type == UnitTypes::OPERATOR) {
+        else if (i.type == SyntaxTypes::OPERATOR) {
             u16 op_priority = (i.oprt >> 0x8) & 0xF;
             u16 op_associativity = (i.oprt >> 0x4) & 0xF;
 
-            if (op_associativity == 0) {
-                while (!ops.empty() && ops.top().type == UnitTypes::OPERATOR && ((ops.top().oprt >> 0x8) & 0xF) < op_priority) {
-                    result << ops.top().to_string() << ' ';
-                    ops.pop();
-                }
+            // Take operators from stack which has greater priority than given one
+
+            while (!ops.empty() && ops.top().type == SyntaxTypes::OPERATOR && 
+            ((ops.top().oprt >> 0x8) & 0xF) <= op_priority && op_associativity == 0) {
+                result << ops.top().to_string() << ' ';
+                ops.pop();
             }
-            else if (op_associativity == 1) {
-                while (!ops.empty() && ops.top().type == UnitTypes::OPERATOR && ((ops.top().oprt >> 0x8) & 0xF) <= op_priority) {
-                    result << ops.top().to_string() << ' ';
-                    ops.pop();
-                }
+
+            while (!ops.empty() && ops.top().type == SyntaxTypes::OPERATOR &&
+            ((ops.top().oprt >> 0x8) & 0xF) < op_priority && op_associativity == 1) {
+                result << ops.top().to_string() << ' ';
+                ops.pop();
             }
 
             ops.push(i);
