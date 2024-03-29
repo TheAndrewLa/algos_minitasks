@@ -28,20 +28,33 @@ struct BinomialTreeNode {
         BinomialTreeNode* child;
         BinomialTreeNode* sibling;
     } connections;
+
+    BinomialHeap() = delete;
+    BinomialHeap(const BinomialHeap& heap) = default;
+    BinomialHeap(BinomialHeap&& heap) = default;
+
+    ~BinomialHeap() = default;
+
+    BinomialHeap(k key, v value) : key(key), value(value), degree(0) {}
 };
 
 template <typename value, typename key = isize, class compare_class = std::greater<key>>
 class BinomialHeap {
     public:
     using Node = BinomialTreeNode<key, value>;
-    using NodeFields = std::pair<key, value>;
+    using NodeData = std::pair<key, value>;
 
     using Key = key;
     using Value = value;
 
     // Following rule of 5 ('cause im c++ guy)
 
-    BinomialHeap() noexcept {}
+    BinomialHeap() noexcept {
+    } // TODO: static asserts here (check key & value and comparator)
+
+    BinomialHeap(const NodeData& node) noexcept {
+    } // TODO: static asserts here (check key & value and comparator)
+
     BinomialHeap(const BinomialHeap& heap) {}
     BinomialHeap(BinomialHeap&& heap) {}
 
@@ -50,44 +63,70 @@ class BinomialHeap {
     BinomialHeap& operator=(const BinomialHeap& heap);
     BinomialHeap& operator=(BinomialHeap&& heap);
 
-    // Merging (by operator or by method)
-
-    BinomialHeap& operator+=(const BinomialHeap& heap) {
-        this->merge(heap);
-        return *this;
-    }
+    // Merging
 
     void merge(const BinomialHeap& heap) {
         if (!heap.validate())
             throw std::logic_error("Another heap is broken, merge can't be done!");
     }
 
+    static BinomialHeap merge(const BinomialHeap& h1, const BinomialHeap& h2) {
+        
+    }
+
     // Inserting node by key & value
 
-    void insert_node(const NodeFields& node) {}
+    void insert_node(const NodeData& node) {}
 
     // Peeking and popping min element
 
-    NodeFields pop_top() {
+    NodeData pop_top() {
         if (head_ == nullptr)
             throw std::logic_error("You can't peek element from empty heap!");
     }
 
-    NodeFields peek_top() const {
+    NodeData peek_top() const {
         if (head_ == nullptr)
             throw std::logic_error("You can't peek element from empty heap!");
+
+        Node* min = head_;
+        Node* current = head_->connections.sibling;
+
+        while (current != nullptr) {
+            if (compare(min->key, current->key))
+                min = current;
+
+            current = current->connections.sibling;
+        }
+
+        return NodeData {min->key, min->value};
     }
 
-    // Convert heap to string
+    std::string to_string() const {
+    } // @todo Implement method of converting heap to string
 
-    std::string to_string() const;
+    bool validate() const {
+    } /// @todo Implement validating method
 
-    // Method to check if our binomial heap is correct
-    bool validate() const;
+    void clear() {
+    } /// @todo Implement method of total releasing of heap
 
     private:
     const compare_class compare {};
 
+    usize get_siblings_count(Node* node) const {
+        usize total {0};
+        Node* iter = head_;
+
+        while (iter != nullptr) {
+            total++;
+            iter = iter->connections.sibling;
+        }
+
+        return total;
+    }
+
+    // Bitmask of heights of our binomial trees
     std::bitset<64> trees_ {0};
     Node* head_ {nullptr};
 };
