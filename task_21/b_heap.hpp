@@ -41,31 +41,27 @@ struct BinomialTreeNode {
     BinomialTreeNode(k key, v value) : key(key), value(value), degree(0) {}
 };
 
-template <typename value, typename key = isize, class compare_class = std::greater<key>>
+template <typename V, typename K = isize, class compare_class = std::greater<K>>
 class BinomialHeap {
     public:
-    using Node = BinomialTreeNode<key, value>;
-    using NodeData = std::pair<key, value>;
+    using Node = BinomialTreeNode<K, V>;
+    using NodeData = std::pair<K, V>;
 
-    using Key = key;
-    using Value = value;
+    using Key = K;
+    using Value = V;
 
     // Following rule of 5 ('cause im c++ guy)
 
     BinomialHeap() noexcept {
-        static_assert(std::is_nothrow_default_constructible_v<compare_class>);
     }
 
     explicit BinomialHeap(const NodeData& node) noexcept {
-        static_assert(std::is_nothrow_default_constructible_v<compare_class>);
     }
 
     BinomialHeap(const BinomialHeap& heap) {
-        static_assert(std::is_nothrow_default_constructible_v<compare_class>);
     }
 
     BinomialHeap(BinomialHeap&& heap) {
-        static_assert(std::is_nothrow_default_constructible_v<compare_class>);
     }
 
     ~BinomialHeap() {
@@ -89,7 +85,9 @@ class BinomialHeap {
 
     // Inserting node by key & value
 
-    void insert_node(const NodeData& node) {}
+    void insert_node(const NodeData& node) {
+        this->merge(BinomialHeap {node});
+    }
 
     // Peeking and popping min element
 
@@ -102,8 +100,8 @@ class BinomialHeap {
         if (head_ == nullptr)
             throw std::logic_error("You can't peek element from empty heap!");
 
-        Node* min = head_;
-        Node* current = head_->connections.sibling;
+        Node* min {head_};
+        Node* current {head_->connections.sibling};
 
         while (current != nullptr) {
             if (compare(min->key, current->key))
@@ -132,7 +130,7 @@ class BinomialHeap {
 
     usize get_siblings_count(Node* node) const {
         usize total {0};
-        Node* iter = head_;
+        Node* iter {head_};
 
         while (iter != nullptr) {
             total++;
@@ -141,6 +139,8 @@ class BinomialHeap {
 
         return total;
     }
+
+    void release_tree(Node* tree_head) {}
 
     // Bitmask of heights of our binomial trees
     std::bitset<64> trees_;
