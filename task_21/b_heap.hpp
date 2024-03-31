@@ -23,19 +23,22 @@ struct BinomialTreeNode {
 
     usize degree;
 
+     /// @todo Use smart pointers here
     struct Connections {
         BinomialTreeNode* parent;
         BinomialTreeNode* child;
         BinomialTreeNode* sibling;
     } connections;
 
-    BinomialHeap() = delete;
-    BinomialHeap(const BinomialHeap& heap) = default;
-    BinomialHeap(BinomialHeap&& heap) = default;
+    /// @todo Think about rule of 3/5 here
 
-    ~BinomialHeap() = default;
+    BinomialTreeNode() = delete;
+    BinomialTreeNode(const BinomialTreeNode& heap) = default;
+    BinomialTreeNode(BinomialTreeNode&& heap) = default;
 
-    BinomialHeap(k key, v value) : key(key), value(value), degree(0) {}
+    ~BinomialTreeNode() = default;
+
+    BinomialTreeNode(k key, v value) : key(key), value(value), degree(0) {}
 };
 
 template <typename value, typename key = isize, class compare_class = std::greater<key>>
@@ -50,15 +53,24 @@ class BinomialHeap {
     // Following rule of 5 ('cause im c++ guy)
 
     BinomialHeap() noexcept {
-    } // TODO: static asserts here (check key & value and comparator)
+        static_assert(std::is_nothrow_default_constructible_v<compare_class>);
+    }
 
-    BinomialHeap(const NodeData& node) noexcept {
-    } // TODO: static asserts here (check key & value and comparator)
+    explicit BinomialHeap(const NodeData& node) noexcept {
+        static_assert(std::is_nothrow_default_constructible_v<compare_class>);
+    }
 
-    BinomialHeap(const BinomialHeap& heap) {}
-    BinomialHeap(BinomialHeap&& heap) {}
+    BinomialHeap(const BinomialHeap& heap) {
+        static_assert(std::is_nothrow_default_constructible_v<compare_class>);
+    }
 
-    ~BinomialHeap();
+    BinomialHeap(BinomialHeap&& heap) {
+        static_assert(std::is_nothrow_default_constructible_v<compare_class>);
+    }
+
+    ~BinomialHeap() {
+        this->clear();
+    }
 
     BinomialHeap& operator=(const BinomialHeap& heap);
     BinomialHeap& operator=(BinomialHeap&& heap);
@@ -67,11 +79,12 @@ class BinomialHeap {
 
     void merge(const BinomialHeap& heap) {
         if (!heap.validate())
-            throw std::logic_error("Another heap is broken, merge can't be done!");
+            throw std::invalid_argument("Another heap is broken, merge can't be done!");
     }
 
     static BinomialHeap merge(const BinomialHeap& h1, const BinomialHeap& h2) {
-        
+        if (!(h1.validate() && h2.validate))
+            throw std::invalid_argument("Heaps are broken, merge can't be done");
     }
 
     // Inserting node by key & value
@@ -102,17 +115,20 @@ class BinomialHeap {
         return NodeData {min->key, min->value};
     }
 
+    /// @todo Implement method of converting heap to string
     std::string to_string() const {
-    } // @todo Implement method of converting heap to string
+    }
 
+    /// @todo Implement validating method
     bool validate() const {
-    } /// @todo Implement validating method
+    }
 
+    /// @todo Implement method of total releasing of heap
     void clear() {
-    } /// @todo Implement method of total releasing of heap
+    }
 
     private:
-    const compare_class compare {};
+    const compare_class compare;
 
     usize get_siblings_count(Node* node) const {
         usize total {0};
@@ -127,6 +143,6 @@ class BinomialHeap {
     }
 
     // Bitmask of heights of our binomial trees
-    std::bitset<64> trees_ {0};
-    Node* head_ {nullptr};
+    std::bitset<64> trees_;
+    Node* head_;
 };
