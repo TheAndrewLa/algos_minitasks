@@ -58,6 +58,7 @@ class BinomialHeap {
 
     BinomialHeap() noexcept {
         // A bunch of static asserts
+        // Think 'bout nothrow
         static_assert(std::is_nothrow_default_constructible_v<compare_class>);
         static_assert(std::is_nothrow_destructible_v<compare_class>);
 
