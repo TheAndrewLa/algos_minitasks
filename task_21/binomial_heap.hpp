@@ -17,21 +17,28 @@ using isize = std::ptrdiff_t;
 using u32 = std::uint32_t;
 using i32 = std::int32_t;
 
-template <typename k, typename v>
+template <typename K, typename V>
 struct BinomialTreeNode {
-    k key;
-    v value;
+    static_assert(std::is_copy_constructible_v<K>);
+    static_assert(std::is_copy_assignable_v<K>);
+    static_assert(std::is_destructible_v<K>);
+
+    static_assert(std::is_copy_constructible_v<V>);
+    static_assert(std::is_copy_assignable_v<V>);
+    static_assert(std::is_destructible_v<V>);
+
+    K key;
+    V value;
 
     usize degree;
 
-    /// @todo Use smart pointers here
     struct Connections {
         BinomialTreeNode* parent {nullptr};
         BinomialTreeNode* child {nullptr};
         BinomialTreeNode* sibling {nullptr};
     } rels;
 
-    /// @todo Think about rule of 3/5 here
+    /// @todo Think about rule-of-5 here
 
     BinomialTreeNode() = delete;
     BinomialTreeNode(const BinomialTreeNode& heap) = default;
@@ -39,15 +46,26 @@ struct BinomialTreeNode {
 
     ~BinomialTreeNode() = default;
 
-    BinomialTreeNode(const k& key, const v& value) : key(key), value(value), degree(0) {}
+    BinomialTreeNode(const K& key, const V& value) : key(key), value(value), degree(0) {}
 
     BinomialTreeNode& operator=(const BinomialTreeNode& heap) = delete;
     BinomialTreeNode& operator=(BinomialTreeNode&& heap) = delete;
 };
 
-template <typename V, typename K = isize, class compare_class = std::greater<K>>
+template <typename V, typename K = isize, class CompareClass = std::greater<K>>
 class BinomialHeap {
     public:
+    static_assert(std::is_default_constructible_v<CompareClass>);
+    static_assert(std::is_destructible_v<CompareClass>);
+    
+    static_assert(std::is_copy_constructible_v<K>);
+    static_assert(std::is_copy_assignable_v<K>);
+    static_assert(std::is_destructible_v<K>);
+
+    static_assert(std::is_copy_constructible_v<V>);
+    static_assert(std::is_copy_assignable_v<V>);
+    static_assert(std::is_destructible_v<V>);
+
     using Node = BinomialTreeNode<K, V>;
     using NodeData = std::pair<K, V>;
 
@@ -57,16 +75,6 @@ class BinomialHeap {
     // Following rule of 5 ('cause im c++ guy)
 
     BinomialHeap() noexcept {
-        // A bunch of static asserts
-        // Think 'bout nothrow
-        static_assert(std::is_nothrow_default_constructible_v<compare_class>);
-        static_assert(std::is_nothrow_destructible_v<compare_class>);
-
-        static_assert(std::is_nothrow_destructible_v<K>);
-        static_assert(std::is_nothrow_destructible_v<V>);
-
-        static_assert(std::is_nothrow_copy_constructible_v<K>);
-        static_assert(std::is_nothrow_copy_constructible_v<V>);
     }
 
     explicit BinomialHeap(const NodeData& node) noexcept : BinomialHeap() {
@@ -157,7 +165,10 @@ class BinomialHeap {
             current = current->rels.sibling;
         }
 
-        // Min node are here
+        // Extracting min
+
+        assert(trees_[min->degree] == 1);
+        trees_[min->degree] = 0;
 
         if (min_prev == nullptr) {
             assert(min == head_);
@@ -168,7 +179,7 @@ class BinomialHeap {
             min_prev->rels.sibling = min->rels.sibling;
         }
 
-        /// @todo merge with other binomial heaps
+        /// @todo merge with other binomial trees
     }
 
     NodeData peek_top() const {
@@ -203,7 +214,7 @@ class BinomialHeap {
     };
 
     private:
-    const compare_class compare;
+    const CompareClass compare;
 
     void release(Node* node) {
         if (node == nullptr)
