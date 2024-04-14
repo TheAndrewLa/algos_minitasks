@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 #include <bitset>
+#include <forward_list>
 
 #include <type_traits>
 
@@ -17,229 +18,215 @@ using isize = std::ptrdiff_t;
 using u32 = std::uint32_t;
 using i32 = std::int32_t;
 
-template <typename K, typename V>
-struct BinomialTreeNode {
-    static_assert(std::is_copy_constructible_v<K>);
-    static_assert(std::is_copy_assignable_v<K>);
-    static_assert(std::is_destructible_v<K>);
+template <typename V, typename P = isize, class CMP = std::greater<P>>
+class BinomialHeap;
+
+template <typename V, typename P, class CMP>
+struct BinomialTree {
+    static_assert(std::is_base_of_v<std::__binary_function<P, P, bool>, CMP>);
+
+    static_assert(std::is_copy_constructible_v<P>);
+    static_assert(std::is_copy_assignable_v<P>);
+    static_assert(std::is_move_constructible_v<P>);
+    static_assert(std::is_move_assignable_v<P>);
+    static_assert(std::is_destructible_v<P>);
 
     static_assert(std::is_copy_constructible_v<V>);
     static_assert(std::is_copy_assignable_v<V>);
+    static_assert(std::is_move_constructible_v<V>);
+    static_assert(std::is_move_assignable_v<V>);
     static_assert(std::is_destructible_v<V>);
 
-    K key;
-    V value;
+    BinomialTree() = delete;
 
-    usize degree;
+    BinomialTree(const BinomialTree& heap) {
+        assert(heap.rels_.parent == nullptr && heap.rels_.sibling == nullptr);
 
-    struct Connections {
-        BinomialTreeNode* parent {nullptr};
-        BinomialTreeNode* child {nullptr};
-        BinomialTreeNode* sibling {nullptr};
-    } rels;
+        priority_ = heap.priority_;
+        value_ = heap.value_;
 
-    /// @todo Think about rule-of-5 here
+        degree_ = heap.degree_;
 
-    BinomialTreeNode() = delete;
-    BinomialTreeNode(const BinomialTreeNode& heap) = default;
-    BinomialTreeNode(BinomialTreeNode&& heap) = default;
+        rels_.child = (heap.rels_.child == nullptr)? nullptr : heap.rels_.child->copy();
+    }
 
-    ~BinomialTreeNode() = default;
+    BinomialTree(BinomialTree&& heap) {
+        priority_ = std::move(heap.priority_);
+        value_ = std::move(heap.value_);
 
-    BinomialTreeNode(const K& key, const V& value) : key(key), value(value), degree(0) {}
+        degree_ = heap.degree_;
 
-    BinomialTreeNode& operator=(const BinomialTreeNode& heap) = delete;
-    BinomialTreeNode& operator=(BinomialTreeNode&& heap) = delete;
+        rels_.parent = heap.rels_.parent;
+        rels_.child = heap.rels_.child;
+        rels_.sibling = heap.rels_.sibling;
+
+        heap.rels_.parent = nullptr;
+        heap.rels_.child = nullptr;
+        heap.rels_.sibling = nullptr;
+    }
+
+    ~BinomialTree() {
+        if (rels_.parent != nullptr || rels_.sibling != nullptr)
+            return;
+
+        delete rels_.child;
+        delete rels_.sibling;
+    }
+
+    BinomialTree(const V& value, const P& priority) : value_(value), priority_(priority) {}
+
+    BinomialTree& operator=(const BinomialTree<V, P, CMP>& tree) = delete;
+    BinomialTree& operator=(BinomialTree<V, P, CMP>&& tree) = delete;
+
+    void decrease_priority(const P& new_priority) {
+        const CMP compare;
+
+        if (compare(priority_, new_priority) == false)
+            throw std::invalid_argument("Priority is not decreased");
+
+        while (rels_.parent != nullptr && compare(rels_.parent->priority, new_priority)) {
+            // do weird swapping
+        }
+    }
+
+    friend class BinomialHeap<V, P, CMP>;
+
+    private:
+    P priority_;
+    V value_;
+
+    usize degree_ = 0;
+
+    struct {
+        BinomialTree<V, P, CMP>* parent{nullptr};
+        BinomialTree<V, P, CMP>* child{nullptr};
+        BinomialTree<V, P, CMP>* sibling{nullptr};
+    } rels_;
+
+    void merge(const BinomialTree<V, P, CMP>* tree) {
+        assert(rels_.parent == nullptr && rels_.sibling == nullptr);
+        assert(tree->rels_.parent == nullptr && tree->rels_.sibling == nullptr);
+
+        if (tree->degree_ != degree_)
+            throw std::invalid_argument("Trees don't have same degree!");
+        
+        const CMP compare;
+
+        if (compare(tree->priority_, priority_) == true) {
+            BinomialTree<V, P, CMP>* prev_tree = this->copy();
+            prev_tree->rels_.parent = this;
+
+            priority_ = tree->priority_;
+            value_ = tree->value_;
+
+            if (tree->rels_.child != nullptr)
+                prev_tree->rels_.sibling = tree->rels_.child->copy();
+        }
+        else {
+            BinomialTree<V, P, CMP>* new_tree = tree->copy();
+
+            new_tree->rels_.sibling = rels_.child;
+            rels_.child = new_tree;
+        }
+
+        degree_++;
+    }
+
+    BinomialTree<V, P, CMP>* copy() const {
+        auto new_tree = new BinomialTree<V, P, CMP>{priority_, value_};
+
+        if (rels_.child != nullptr)
+            new_tree->rels_.child = rels_.child->copy();
+
+        if (rels_.sibling != nullptr)
+            new_tree->rels_.sibling = rels_.sibling->copy();
+
+        return new_tree;
+    }
 };
 
-template <typename V, typename K = isize, class CompareClass = std::greater<K>>
+template <typename V, typename P, class CMP>
 class BinomialHeap {
     public:
-    static_assert(std::is_default_constructible_v<CompareClass>);
-    static_assert(std::is_destructible_v<CompareClass>);
-    
-    static_assert(std::is_copy_constructible_v<K>);
-    static_assert(std::is_copy_assignable_v<K>);
-    static_assert(std::is_destructible_v<K>);
+    static_assert(std::is_base_of_v<std::__binary_function<P, P, bool>, CMP>);
+
+    static_assert(std::is_copy_constructible_v<P>);
+    static_assert(std::is_copy_assignable_v<P>);
+    static_assert(std::is_move_constructible_v<P>);
+    static_assert(std::is_move_assignable_v<P>);
+    static_assert(std::is_destructible_v<P>);
 
     static_assert(std::is_copy_constructible_v<V>);
     static_assert(std::is_copy_assignable_v<V>);
+    static_assert(std::is_move_constructible_v<V>);
+    static_assert(std::is_move_assignable_v<V>);
     static_assert(std::is_destructible_v<V>);
 
-    using Node = BinomialTreeNode<K, V>;
-    using NodeData = std::pair<K, V>;
+    using Tree = BinomialTree<V, P, CMP>;
 
-    using Key = K;
-    using Value = V;
+    BinomialHeap() = delete;
 
-    // Following rule of 5 ('cause im c++ guy)
-
-    BinomialHeap() noexcept {
+    explicit BinomialHeap(const V& value, const P& priority) {
+        trees_.push_back(new Tree{value, priority});
+        tree_mask_ = {1};
     }
 
-    explicit BinomialHeap(const NodeData& node) noexcept : BinomialHeap() {
+    BinomialHeap(const BinomialHeap& heap) {
+        for (auto i = heap.trees_.cbegin(); i < heap.trees_.cend(); i++)
+            trees_.push_back(i->copy());
 
+        tree_mask_ = heap.tree_mask_;
     }
 
-    BinomialHeap(const BinomialHeap& heap) : BinomialHeap() {
-        if (!heap.validate())
-            throw std::invalid_argument("Copying from invalid heap can not be done!");
+    BinomialHeap(BinomialHeap&& heap) {
+        for (auto i = heap.trees_.begin(); i < heap.trees_.end(); i++) {
+            trees_.push_back((*i));
+            *i = nullptr;
+        }
 
-        head_ = copy(heap.head_);
-        trees_ = heap.trees_;
-    }
-
-    BinomialHeap(BinomialHeap&& heap) : BinomialHeap() {
-        if (!heap.validate())
-            throw std::invalid_argument("Moving invalid heap can not be done!");
-
-        head_ = heap.head_;
-        trees_ = heap.trees_;
-
-        heap.head_ = nullptr;
+        tree_mask_ = heap.tree_mask_;
     }
 
     ~BinomialHeap() {
-        this->clear();
+        for (Tree* i : trees_)
+            delete i;
     }
 
-    BinomialHeap& operator=(const BinomialHeap& heap) {
-        if (!heap.validate())
-            throw std::invalid_argument("Copying from invalid heap can not be done!");
+    BinomialHeap& operator=(const BinomialHeap& heap) = delete;
+    BinomialHeap& operator=(BinomialHeap&& heap) = delete;
 
-        this->clear();
-
-        head_ = copy(heap.head_);
-        trees_ = heap.trees_;
+    void merge(const BinomialHeap<V, P, CMP>& heap) {
     }
 
-    BinomialHeap& operator=(BinomialHeap&& heap) {
-        if (!heap.validate())
-            throw std::invalid_argument("Moving invalid heap can not be done!");
+    Tree* insert(const P& priority, const V& value) {
+        auto new_tree = new Tree{priority, value};
 
-        this->clear();
-
-        head_ = heap.head_;
-        trees_ = heap.trees_;
-
-        heap.head_ = nullptr;
+        return new_tree;
     }
 
-    // Merging
-
-    void merge(const BinomialHeap& heap) {
-        if (!heap.validate())
-            throw std::invalid_argument("Another heap is invalid, merge can't be done!");
+    V extract_top() {
+        if (trees_.empty())
+            throw std::logic_error("Can't extract top element from heap!");
     }
 
-    static BinomialHeap merge(const BinomialHeap& h1, const BinomialHeap& h2) {
-        if (!(h1.validate() && h2.validate))
-            throw std::invalid_argument("Heaps are invalid, merge can't be done");
-    }
+    V peek_top() const {
+        if (trees_.empty())
+            throw std::logic_error("Can't get top element from heap!");
 
-    // Inserting node by key & value
+        Tree* max_tree = trees_.front();
 
-    void insert(const NodeData& node) {
-        merge(BinomialHeap{node});
-    }
-
-    // Peeking and popping min element
-
-    NodeData pop_top() {
-        if (head_ == nullptr)
-            throw std::logic_error("Popping element from empty heap can not be done!");
-
-        Node* min{head_};
-        Node* min_prev{nullptr};
-
-        Node* prev{head_};
-        Node* current{head_->rels.sibling};
-
-        while (current != nullptr) {
-            if (compare(min->key, current->key)) {
-                min = current;
-                min_prev = prev;
+        std::for_each(trees_.cbegin() + 1, trees_.cend(), [&max_tree, this] (auto i) {
+            if (this->compare(i->priority_, max_tree->priority_)) {
+                max_tree = i;
             }
+        });
 
-            prev = current;
-            current = current->rels.sibling;
-        }
-
-        // Extracting min
-
-        assert(trees_[min->degree] == 1);
-        trees_[min->degree] = 0;
-
-        if (min_prev == nullptr) {
-            assert(min == head_);
-            head_ = min->rels.sibling;
-        }
-        else {
-            assert(min_prev->rels.sibling == min);
-            min_prev->rels.sibling = min->rels.sibling;
-        }
-
-        /// @todo merge with other binomial trees
+        return max_tree->value_;
     }
-
-    NodeData peek_top() const {
-        if (head_ == nullptr)
-            throw std::logic_error("Peeking element from empty heap can not be done!");
-
-        Node* min{head_};
-        Node* current{head_->rels.sibling};
-
-        while (current != nullptr) {
-            if (compare(min->key, current->key))
-                min = current;
-
-            current = current->rels.sibling;
-        }
-
-        return NodeData {min->key, min->value};
-    }
-
-    /// @todo Implement method of converting heap to string
-    std::string to_string() const {
-    }
-
-    /// @todo Implement validating method
-    bool validate() const {
-    }
-
-    /// @todo Implement method of total releasing of heap
-    void clear() {
-        this->release(head_);
-        trees_ = std::bitset<64>{0};
-    };
 
     private:
-    const CompareClass compare;
+    const CMP compare;
 
-    void release(Node* node) {
-        if (node == nullptr)
-            return;
-
-        release_tree(node->rels.child);
-        release_tree(node->rels.sibling);
-
-        delete node;
-    }
-
-    Node* copy(Node* node, Node* parent = nullptr) {
-        if (node == nullptr)
-            return nullptr;
-
-        Node* new_node = new Node{node->key, node->value};
-
-        new_node->rels.child = copy(node->rels.child, node);
-        new_node->rels.sibling = copy(node->rels.sibling, parent);
-        new_node->rels.parent = parent;
-
-        return new_node;
-    }
-
-    // Bitmask of heights of our binomial trees
-    std::bitset<64> trees_{0};
-    Node* head_{nullptr};
+    std::vector<Tree*> trees_;
+    std::bitset<64> tree_mask_;
 };
