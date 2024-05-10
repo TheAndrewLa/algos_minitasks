@@ -3,10 +3,9 @@
 #include <cstdint>
 #include <cassert>
 
-#include <functional>
-
 #include <stdexcept>
 
+#include <functional>
 #include <type_traits>
 
 using usize = std::size_t;
