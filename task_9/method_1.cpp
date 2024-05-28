@@ -25,7 +25,7 @@ int delete_mat(int** mat, usize n) {
     return 0;
 }
 
-// Usual algorithm: O(n^3)
+// Usual algorithm: O(n^3), iteration
 
 int** mat_mul(int** a, int** b, usize n) {
     int** res = create_mat(n);

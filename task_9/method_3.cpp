@@ -28,7 +28,7 @@ int delete_mat(int** mat, usize n) {
 }
 
 // Strassen algorithm
-constexpr usize RecursionFallback = 8;
+const usize RecursionFallback = 16;
 
 void mat_add_assign(int** a, int** b, usize size) {
     assert(a != nullptr && b != nullptr);
@@ -54,6 +54,8 @@ int** mat_add(int** a, int** b, usize size) {
     for (usize i = 0; i < size; i++)
         for (usize j = 0; j < size; j++)
             res[i][j] = a[i][j] + b[i][j];
+
+    return res;
 }
 
 int** mat_sub(int** a, int** b, usize size) {
@@ -64,6 +66,12 @@ int** mat_sub(int** a, int** b, usize size) {
     for (usize i = 0; i < size; i++)
         for (usize j = 0; j < size; j++)
             res[i][j] = a[i][j] - b[i][j];
+
+    return res;
+}
+
+inline void zero_mat(int** mat, usize n) {
+    mat_sub_assign(mat, mat, n);
 }
 
 int** mat_mul(int** a, int** b, usize n) {
@@ -87,7 +95,7 @@ int** mat_mul_recursive(int** in_a, int** in_b, usize n) {
 
     usize half = n / 2;
 
-    // 8 matrices
+    // 8 matrices (just a copies)
     int** a = MATRIX_OFFSET(in_a, n, 0, 0);
     int** b = MATRIX_OFFSET(in_a, n, 0, half);
     int** c = MATRIX_OFFSET(in_a, n, half, 0);
@@ -98,46 +106,75 @@ int** mat_mul_recursive(int** in_a, int** in_b, usize n) {
     int** g = MATRIX_OFFSET(in_b, n, half, 0);
     int** h = MATRIX_OFFSET(in_b, n, half, half);
 
+    int** tmp_mat = create_mat(half);
+    int** tmp_mat_2 = create_mat(half);
+
     int** fh = mat_sub(f, h, half);
-    int** p1 = mat_mul_recursive(a, fh, half);
-    delete_mat(fh, half);
 
-    int** ab = mat_add(a, b, half);
-    int** p2 = mat_mul_recursive(ab, h, half);
-    delete_mat(ab, half);
+    mat_add_assign(tmp_mat, f, half);
+    mat_sub_assign(tmp_mat, h, half);
 
-    int** cd = mat_add(c, d, half);
-    int** p3 = mat_mul_recursive(cd, e, half);
-    delete_mat(cd, half);
+    int** p1 = mat_mul_recursive(a, tmp_mat, half);
 
-    int** ge = mat_sub(g, e, half);
-    int** p4 = mat_mul_recursive(d, ge, half);
-    delete_mat(ge, half);
+    zero_mat(tmp_mat, half);
 
-    int** ad = mat_add(a, d, half);
-    int** eh = mat_add(e, h, half);
-    int** p5 = mat_mul_recursive(ad, eh, half);
-    delete_mat(ad, half);
-    delete_mat(eh, half);
+    mat_add_assign(tmp_mat, a, half);
+    mat_add_assign(tmp_mat, b, half);
 
-    int** bd = mat_sub(b, d, half);
-    int** gh = mat_add(g, h, half);
-    int** p6 = mat_mul_recursive(bd, gh, half);
-    delete_mat(bd, half);
-    delete_mat(gh, half);
+    int** p2 = mat_mul_recursive(tmp_mat, h, half);
 
-    int** ac = mat_sub(a, c, half);
-    int** ef = mat_add(e, g, half);
-    int** p7 = mat_mul_recursive(ac, ef, half);
-    delete_mat(ac, half);
-    delete_mat(ef, half);
+    zero_mat(tmp_mat, half);
+
+    mat_add_assign(tmp_mat, c, half);
+    mat_add_assign(tmp_mat, d, half);
+
+    int** p3 = mat_mul_recursive(tmp_mat, e, half);
+
+    zero_mat(tmp_mat, half);
+
+    mat_add_assign(tmp_mat, g, half);
+    mat_add_assign(tmp_mat, e, half);
+
+    int** p4 = mat_mul_recursive(d, tmp_mat, half);
+    
+    zero_mat(tmp_mat, half);
+    zero_mat(tmp_mat_2, half);
+
+    mat_add_assign(tmp_mat, a, half);
+    mat_add_assign(tmp_mat, d, half);
+
+    mat_add_assign(tmp_mat_2, e, half);
+    mat_add_assign(tmp_mat_2, h, half);
+
+    int** p5 = mat_mul_recursive(tmp_mat, tmp_mat_2, half);
+
+    zero_mat(tmp_mat, half);
+    zero_mat(tmp_mat_2, half);
+
+    mat_add_assign(tmp_mat, b, half);
+    mat_sub_assign(tmp_mat, d, half);
+
+    mat_add_assign(tmp_mat_2, g, half);
+    mat_add_assign(tmp_mat_2, h, half);
+
+    int** p6 = mat_mul_recursive(tmp_mat, tmp_mat_2, half);
+
+    zero_mat(tmp_mat, half);
+    zero_mat(tmp_mat_2, half);
+
+    mat_add_assign(tmp_mat, a, half);
+    mat_sub_assign(tmp_mat, c, half);
+
+    mat_add_assign(tmp_mat_2, e, half);
+    mat_add_assign(tmp_mat_2, g, half);
+
+    int** p7 = mat_mul_recursive(tmp_mat, tmp_mat_2, half);
 
     int** q1 = mat_add(p5, p4, half);
     mat_sub_assign(q1, p2, half);
     mat_add_assign(q1, p6, half);
 
     int** q2 = mat_add(p1, p2, half);
-
     int** q3 = mat_add(p3, p4, half);
 
     int** q4 = mat_add(p1, p5, half);

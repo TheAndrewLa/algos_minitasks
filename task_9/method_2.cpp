@@ -27,8 +27,9 @@ int delete_mat(int** mat, usize n) {
     return 0;
 }
 
-// Resursive algorithm
-constexpr usize RecursionFallback = 8;
+// Resursive algorithm. Also O(n^3)
+
+const usize RecursionFallback = 16;
 
 void mat_add(int** a, int** b, usize size) {
     assert(a != nullptr && b != nullptr);
