@@ -10,6 +10,10 @@ using std::string;
 
 #define MATRIX_OFFSET(mat, size, x_offset, y_offset) (int**) ((mat) + (sizeof(int) * (size) * (x_offset)) + (sizeof(int) * (y_offset)))
 
+#ifndef FALLBACK
+#define FALLBACK (16)
+#endif
+
 int** create_mat(usize n) {
     int** res = new int*[n];
     for (usize i = 0; i < n; i++)
@@ -26,9 +30,6 @@ int delete_mat(int** mat, usize n) {
 
     return 0;
 }
-
-// Strassen algorithm
-const usize RecursionFallback = 16;
 
 void mat_add_assign(int** a, int** b, usize size) {
     assert(a != nullptr && b != nullptr);
@@ -90,12 +91,12 @@ int** mat_mul(int** a, int** b, usize n) {
 int** mat_mul_recursive(int** in_a, int** in_b, usize n) {
     assert(in_a != nullptr && in_b != nullptr);
 
-    if (n <= RecursionFallback)
+    if (n <= FALLBACK)
         return mat_mul(in_a, in_b, n);
 
     usize half = n / 2;
 
-    // 8 matrices (just a copies)
+    // 8 matrices
     int** a = MATRIX_OFFSET(in_a, n, 0, 0);
     int** b = MATRIX_OFFSET(in_a, n, 0, half);
     int** c = MATRIX_OFFSET(in_a, n, half, 0);

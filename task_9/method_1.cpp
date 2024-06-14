@@ -16,6 +16,11 @@ int** create_mat(usize n) {
     return res;
 }
 
+int* create_vec(usize n) {
+    int* res = new int[n]();
+    return res;
+}
+
 int delete_mat(int** mat, usize n) {
     for (usize i = 0; i < n; i++)
         delete[] mat[i];
@@ -27,13 +32,23 @@ int delete_mat(int** mat, usize n) {
 
 // Usual algorithm: O(n^3), iteration
 
-int** mat_mul(int** a, int** b, usize n) {
+int** mat_mul(int** a, int** b, usize n, usize mod) {
     int** res = create_mat(n);
 
     for (usize i = 0; i < n; i++)
         for (usize j = 0; j < n; j++)
             for (usize k = 0; k < n; k++)
                 res[i][j] += a[i][k] * b[k][j];
+
+    return res;
+}
+
+int* mat_vec(int** a, int* b, usize n, usize mod) {
+    int* res = create_vec(n);
+
+    for (usize i = 0; i < n; i++)
+        for (usize j = 0; j < n; j++)
+            res[i] = (res[i] + ((a[i][j] * b[j]) % mod)) % mod;
 
     return res;
 }
@@ -45,7 +60,6 @@ int main(int argc, char ** argv) {
     usize size = (usize) std::stoull(string {argv[1]});
 
     int** a = create_mat(size);
-    int** b = create_mat(size);
 
     // Reading matrices from stdin
 
@@ -53,13 +67,31 @@ int main(int argc, char ** argv) {
         for (usize j = 0; j < size; j++)
             std::cin >> a[i][j];
 
+    // Reading vec from stding
+
+    int* b = create_vec(size);
+
     for (usize i = 0; i < size; i++)
-        for (usize j = 0; j < size; j++)
-            std::cin >> b[i][j];
+        std::cin >> b[i];
 
-    std::clock_t start = std::clock();
-    int** res = mat_mul(a, b, size);
-    std::cout << std::clock() - start;
+    // for (usize i = 0; i < size; i++)
+    //     for (usize j = 0; j < size; j++)
+    //         std::cin >> b[i][j];
 
-    return delete_mat(res, size);
+    // std::clock_t start = std::clock();
+
+    int* res = mat_vec(a, b, size, 7);
+
+    // std::cout << std::clock() - start;
+
+    for (usize i = 0; i < size; i++) {
+        //for (usize j = 0; j < size; j++) {
+            std::cout << res[i] << ' ';
+        //}
+
+        //std::cout << '\n';
+    }
+
+    // delete_mat(res, size);
+    return 0;
 }
