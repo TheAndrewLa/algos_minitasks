@@ -10,10 +10,6 @@ using std::string;
 
 #define MATRIX_OFFSET(mat, size, x_offset, y_offset) (int**) ((mat) + (sizeof(int) * (size) * (x_offset)) + (sizeof(int) * (y_offset)))
 
-#ifndef FALLBACK
-#define FALLBACK (16)
-#endif
-
 int** create_mat(usize n) {
     int** res = new int*[n];
     for (usize i = 0; i < n; i++)
@@ -91,7 +87,7 @@ int** mat_mul(int** a, int** b, usize n) {
 int** mat_mul_recursive(int** in_a, int** in_b, usize n) {
     assert(in_a != nullptr && in_b != nullptr);
 
-    if (n <= FALLBACK)
+    if (n <= 64)
         return mat_mul(in_a, in_b, n);
 
     usize half = n / 2;
@@ -237,7 +233,9 @@ int main(int argc, char ** argv) {
             std::cin >> b[i][j];
 
     std::clock_t start = std::clock();
+    
     int** res = mat_mul(a, b, size);
+
     std::cout << std::clock() - start;
 
     return delete_mat(res, size);
