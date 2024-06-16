@@ -20,15 +20,15 @@ using real32 = float;
 
 // Just for fun
 
-union IP {
+union ip_address {
     struct {
-        u8 a, b, c, d;
+        u8 h1, h2, h3, h4;
     };
 
     u32 mask;
 };
 
-consteval bool IsPrime(usize number) {
+constexpr bool IsPrime(usize number) {
     for (usize i = 2; i * i <= number; i++) {
         if (number % i == 0)
             return false;
@@ -37,7 +37,7 @@ consteval bool IsPrime(usize number) {
     return true;
 }
 
-consteval usize NearestPrime(usize number) {
+constexpr usize NearestPrime(usize number) {
     usize i = number + 1;
     while (!IsPrime(i))
         i++;
@@ -45,32 +45,66 @@ consteval usize NearestPrime(usize number) {
     return i;
 }
 
-class BloomFilter {
+class ip_hasher {
     public:
-    BloomFilter(usize size, float error) {
-        if (error <= 0.0f)
+    ip_hasher() = default;
+
+    ip_hasher(usize base) {
+        rehash(base);
+    }
+    
+    void rehash(usize base) {
+        base_ = base;
+
+        a1_ = rand() % base;
+        a2_ = rand() % base;
+        a3_ = rand() % base;
+        a4_ = rand() % base;
+    }
+
+    inline usize hash(ip_address addr) const {
+        usize b1 = addr.h1 * a1_;
+        usize b2 = addr.h2 * a2_;
+        usize b3 = addr.h3 * a3_;
+        usize b4 = addr.h4 * a4_;
+        return (b1 + b2 + b3 + b4) % base_;
+    }
+
+    private:
+    usize base_;
+
+    usize a1_;
+    usize a2_;
+    usize a3_;
+    usize a4_;
+};
+
+class bloom_filter {
+    public:
+    bloom_filter(usize size, float error) {
+        // 0.1% is min possible error
+        // 100% is max possible error (wut the fuck is wrong with you)
+
+        if (error <= 0.001f || error >= 1.0f)
             throw std::invalid_argument{"Invalid error value!"};
 
-        usize k = -ceilf(log2f(error));
-        size_ = size * ceilf(-log2f(error) / logf(2.0f));
+        usize k = -ceilf(log2f(error)); // number of hash functions
+        usize b = -ceilf(log2f(error) / logf(2.0f)); // number of bits to one object
 
-        bitset_ = std::vector<usize>(((size_ + sizeof(int)) / sizeof(int) + 7) / 8, 0);
-        hash_values_ = std::vector<std::pair<u32, u32>>(k);
+        bitset_ = std::vector<usize>((b * size) / sizeof(usize), 0);
 
-        for (auto& i : hash_values_) {
-            i.first = rand() % hash_base;
-            i.second = rand() % hash_base;
-        }
+        std::srand(std::time(nullptr));
+        hashers_ = std::vector<ip_hasher>(k, {hash_base});
     }
 
-    void insert(IP addr) {
-        for (const auto& i : hash_values_)
-            set_bit(hash(addr.mask, i.first, i.second), true);
+    void insert(ip_address addr) {
+        for (const auto& i : hashers_)
+            set_bit(i.hash(addr), true);
     }
 
-    bool lookup(IP addr) {
-        for (auto& i : hash_values_) {
-            if (peek_bit(hash(addr.mask, i.first, i.second)) == 0)
+    bool search(ip_address addr) {
+        for (auto& i : hashers_) {
+            if (!peek_bit(i.hash(addr)))
                 return false;
         }
 
@@ -78,28 +112,23 @@ class BloomFilter {
     }
 
     private:
-    usize size_;
     std::vector<usize> bitset_;
-    std::vector<std::pair<u32, u32>> hash_values_;
+    std::vector<ip_hasher> hashers_;
 
-    const usize bitset_param = sizeof(usize) * 8;
+    const usize bitset_base = sizeof(usize) * 8;
     const usize hash_base = NearestPrime(1200);
 
-    inline usize hash(u32 x, usize a, usize b) const {
-        return ((a * x + b) % hash_base) % size_;
-    }
-
     inline void set_bit(usize index, bool bit) {
-        usize global = index / bitset_param;
-        usize local = index % bitset_param;
+        usize global = index / bitset_base;
+        usize local = index % bitset_base;
 
         bitset_[global] |= (static_cast<usize>(bit) << local);
     }
 
     inline bool peek_bit(usize index) const {
-        usize global = index / bitset_param;
-        usize local = index % bitset_param;
+        usize global = index / bitset_base;
+        usize local = index % bitset_base;
 
-        return ((bitset_[global] >> local) & 1);
+        return ((bitset_[global] >> local) & 0x1);
     }
 };

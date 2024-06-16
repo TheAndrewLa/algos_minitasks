@@ -1,22 +1,24 @@
 #include <vector>
 #include <iostream>
 
+using isize = std::ptrdiff_t;
+
 using std::vector;
-using coord = std::pair<int, int>;
+using std::pair;
+using coord = pair<int, int>;
 using coord_array = std::vector<coord>;
 
-// A pretty bad variant of hoare partition.
-// But all coords are unique. So, we can use this algorithm
-
 int kth(coord_array::iterator start, coord_array::iterator end, int target) {
-    if (end - start) {
+    isize dist = std::distance(start, end);
+
+    if (dist <= 1) {
         return start->second;
     }
 
-    auto pivot = start + (std::rand() % std::distance(start, end));
+    auto pivot = start + (std::rand() % dist);
     int pivot_value = pivot->second;
 
-    auto i = start - 1;
+    auto i = start;
     auto j = end;
 
     while (true) {
@@ -39,7 +41,7 @@ int kth(coord_array::iterator start, coord_array::iterator end, int target) {
     else if (i->second > target)
         return kth(start, i, target);
     else
-        return kth(i, end, target - i->second);
+        return kth(i + 1, end, target - i->second);
 }
 
 int find_optimal(vector<coord>& coords) {
@@ -49,8 +51,6 @@ int find_optimal(vector<coord>& coords) {
 
 int main() {
     coord_array coords{
-        {4, 4},
-        {6, 6},
         {7, 2},
         {8, 7},
         {4, 3},
@@ -59,7 +59,7 @@ int main() {
         {8, 8},
     };
 
-    int a = find_optimal(coords); // Returns 4 (Correct answer)
+    int a = find_optimal(coords);
 
     std::cout << a << std::endl;
 }
