@@ -2,6 +2,10 @@
 #include <vector>
 #include <cassert>
 #include <cstdlib>
+#include <cstdint>
+#include <ctime>
+
+#include <iostream>
 
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
@@ -10,36 +14,41 @@ using std::vector;
 using std::pair;
 using iterator = std::vector<int>::iterator;
 
-pair<iterator, iterator> hoare(iterator start, iterator end) {
-    iterator pivot = start + (std::rand() % std::distance(start, end));
+pair<isize, isize> hoare(vector<int>& vec, isize start, isize end) {
+    int pivot = vec[start + (std::rand() % (end - start + 1))];
 
-    iterator i = start - 1;
-    iterator j = end;
+    isize right = end;
+    isize left = start;
 
-    while (true) {
-        do {
+    isize i = start;
+
+    while (i <= right) {
+        if (vec[i] < pivot) {
+            std::swap(vec[left], vec[i]);
             i++;
-        } while (*i < *pivot);
-
-        do {
-            j--;
-        } while (*j > *pivot);
-
-        if (i >= j)
-            return {i, j};
-
-        std::swap(*i, *j);
+            left++;
+        }
+        else if (vec[i] == pivot) {
+            i++;
+        }
+        else {
+            std::swap(vec[right], vec[i]);
+            right--;
+        }
     }
 
-    return {i, j};
+    return {left, right};
 }
 
-void quicksort_hoare(iterator begin, iterator end) {
-    std::srand(std::time(nullptr));
-    if (std::distance(begin, end) <= 1)
-        return;
+void quicksort_hoare_base(vector<int>& vec, isize start, isize end) {
+    if (end - start <= 0) return;
 
-    auto [l, h] = hoare(begin, end);
-    quicksort_hoare(begin, l);
-    quicksort_hoare(h + 1, end);
+    auto [l, h] = hoare(vec, start, end);
+    quicksort_hoare_base(vec, start, l - 1);
+    quicksort_hoare_base(vec, h + 1, end);
+}
+
+void quicksort_hoare(vector<int>& vec) {
+    std::srand(std::time(nullptr));
+    quicksort_hoare_base(vec, 0, vec.size() - 1);
 }
