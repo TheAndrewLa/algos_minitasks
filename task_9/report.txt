@@ -1,0 +1,85 @@
+Report on matrix with size: 128:
+        Trivial algorithm:    898.00 <=> 897.75 <=> 15.02
+        Recursive algorithm:  881.00 <=> 880.84 <=> 12.02
+        Strassen algorithm:   883.50 <=> 883.46 <=> 6.18
+
+Report on matrix with size: 128:
+        Trivial algorithm:    890.00 <=> 889.99 <=> 2.35
+        Recursive algorithm:  884.75 <=> 884.67 <=> 8.55
+        Strassen algorithm:   888.75 <=> 888.74 <=> 2.59
+
+Report on matrix with size: 128:
+        Trivial algorithm:    882.75 <=> 882.65 <=> 9.12
+        Recursive algorithm:  879.25 <=> 879.17 <=> 8.26
+        Strassen algorithm:   889.25 <=> 889.24 <=> 2.49
+
+<=====================================>
+
+Report on matrix with size: 256:
+        Trivial algorithm:    11241.00 <=> 11239.38 <=> 134.75
+        Recursive algorithm:  11388.25 <=> 11388.23 <=> 15.99
+        Strassen algorithm:   11376.50 <=> 11376.49 <=> 8.08
+
+Report on matrix with size: 256:
+        Trivial algorithm:    11324.00 <=> 11322.72 <=> 119.87
+        Recursive algorithm:  11383.50 <=> 11383.45 <=> 22.83
+        Strassen algorithm:   11310.75 <=> 11309.71 <=> 107.84
+
+Report on matrix with size: 256:
+        Trivial algorithm:    11331.75 <=> 11330.57 <=> 115.07
+        Recursive algorithm:  11326.00 <=> 11324.63 <=> 123.72
+        Strassen algorithm:   11402.00 <=> 11401.98 <=> 16.20
+
+<=====================================>
+
+Report on matrix with size: 512:
+        Trivial algorithm:    90536.75 <=> 90536.59 <=> 119.41
+        Recursive algorithm:  88955.25 <=> 88873.22 <=> 2654.54
+        Strassen algorithm:   87479.75 <=> 87368.70 <=> 3116.77
+
+Report on matrix with size: 512:
+        Trivial algorithm:    90545.75 <=> 90545.71 <=> 62.50
+        Recursive algorithm:  87506.25 <=> 87397.40 <=> 3086.27
+        Strassen algorithm:   86032.75 <=> 85952.95 <=> 2666.13
+
+Report on matrix with size: 512:
+        Trivial algorithm:    87682.25 <=> 87584.64 <=> 2924.70
+        Recursive algorithm:  86063.50 <=> 85983.30 <=> 2673.78
+        Strassen algorithm:   89622.00 <=> 89507.02 <=> 3161.75
+
+<=====================================>
+
+Report on matrix with size: 1024:
+        Trivial algorithm:    972915.25 <=> 972619.62 <=> 16914.11
+        Recursive algorithm:  989315.50 <=> 989144.94 <=> 12946.29
+        Strassen algorithm:   983062.25 <=> 982922.81 <=> 11643.42
+
+Report on matrix with size: 1024:
+        Trivial algorithm:    981685.75 <=> 981504.48 <=> 13330.79
+        Recursive algorithm:  981089.25 <=> 980872.71 <=> 14550.92
+        Strassen algorithm:   985197.25 <=> 985128.71 <=> 8192.23
+
+Report on matrix with size: 1024:
+        Trivial algorithm:    977663.50 <=> 977099.24 <=> 23497.22
+        Recursive algorithm:  995421.00 <=> 993033.50 <=> 50064.04
+        Strassen algorithm:   972720.50 <=> 972484.66 <=> 15180.34
+
+<=====================================>
+
+
+Report on matrix with size: 2048:
+        Trivial algorithm:    20060804.50 <=> 20048575.83 <=> 492567.85
+        Recursive algorithm:  19578332.75 <=> 19573506.85 <=> 305056.63
+        Strassen algorithm:   19747255.50 <=> 19709707.25 <=> 845398.86
+
+Report on matrix with size: 2048:
+        Trivial algorithm:    20060804.50 <=> 20048575.83 <=> 492567.85
+        Recursive algorithm:  19578332.75 <=> 19573506.85 <=> 305056.63
+        Strassen algorithm:   19747255.50 <=> 19709707.25 <=> 845398.86
+
+Report on matrix with size: 2048:
+        Trivial algorithm:    20060804.50 <=> 20048575.83 <=> 492567.85
+        Recursive algorithm:  19578332.75 <=> 19573506.85 <=> 305056.63
+        Strassen algorithm:   19747255.50 <=> 19709707.25 <=> 845398.86
+
+<=====================================>
