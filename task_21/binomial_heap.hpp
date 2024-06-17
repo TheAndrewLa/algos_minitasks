@@ -7,6 +7,7 @@
 
 #include <bitset>
 #include <vector>
+#include <list>
 
 #include <functional>
 #include <type_traits>
@@ -68,11 +69,6 @@ class BinomialTree {
     BinomialTree(V&& value, P&& priority) requires(std::movable<V> && std::movable<P>)
     : value_(value), priority_(priority) {}
 
-    template <typename... Args>
-    BinomialTree(Args&&... args) {
-        auto [value_, priority_] = std::make_pair<V, P>(std::forward<Args>(args)...);
-    }
-
     BinomialTree& operator=(const BinomialTree& tree) = delete;
     BinomialTree& operator=(BinomialTree&& tree) = delete;
 
@@ -115,7 +111,6 @@ class BinomialTree {
     } rels_;
 
     void merge(BinomialTree* another, const CMP& compare) {
-        // Make sure that we're working with trees, not subtrees
         assert(rels_.parent == nullptr);
         assert(another->rels_.parent == nullptr);
 
@@ -137,8 +132,7 @@ class BinomialTree {
         degree_++;
     }
 
-    BinomialTree* copy() const {
-        // Make sure that we're working with trees, not subtrees
+    BinomialTree* copy() const requires(std::copyable<V> && std::copyable<P>) {
         assert(rels_.parent == nullptr);
 
         auto new_tree = new BinomialTree{priority_, value_};
@@ -156,22 +150,22 @@ class BinomialHeap {
     using Tree = BinomialTree<V, P, CMP>;
     using Node = BinomialTree<V, P, CMP>;
 
-    BinomialHeap() = default;
-
     BinomialHeap(const V& value, const P& priority) requires(std::copyable<V> && std::copyable<P>) {
-        trees_.push_back(new Tree{value, priority});
+        trees_.push_front(new Tree{value, priority});
     }
-
-    BinomialHeap(const std::pair<V, P>& vp) {}
 
     BinomialHeap(const BinomialHeap& heap) requires(std::copyable<V> && std::copyable<P>) {
         for (const auto& i : heap.trees_)
-            trees_.push_back(i->copy());
+            trees_.push_front(i->copy());
+        
+        trees_.reverse();
     }
 
     BinomialHeap(BinomialHeap&& heap) {
         for (const auto& i : heap.trees_)
-            trees_.push_back(i);
+            trees_.push_front(i);
+
+        trees_.reverse();
 
         for (auto& i : heap.trees_)
             i = nullptr;
@@ -182,19 +176,17 @@ class BinomialHeap {
             delete i;
     }
 
-    BinomialHeap& operator=(const BinomialHeap& heap) = delete;
-    BinomialHeap& operator=(BinomialHeap&& heap) = delete;
-
     void merge(const BinomialHeap& heap) {
-        BinomialTree* carry = nullptr;
-        std::vector<Tree*> new_trees;
+        Tree* carry = nullptr;
     }
 
     void insert(const P& priority, const V& value) {
         merge(BinomialHeap{priority, value});
     }
 
-    V&& extract_top() {
+    // Maybe return rvalue here
+
+    V extract_top() {
         auto top = std::begin(trees_);
         auto end = std::end(trees_);
 
@@ -203,21 +195,19 @@ class BinomialHeap {
                 top = i;
         }
 
-        // top = tree node to be deleted
-        // all children if top = trees to be inserted = binomial heap to be merged
+        BinomialHeap<V, P> new_one;
 
-        BinomialTree* top_tree = *top;
-        BinomialHeap new_heap;
+        Tree* top_tree = *top;
+        Tree* cur = top_tree->rels_.child;
 
-        usize degree = top_tree.;
-
-        for (usize i = 0; i < degree; ++i) {
-            new_heap.degrees_[i] = 1;
+        while (cur != nullptr) {
+            new_one.trees_.push_front(cur);
         }
 
-        merge(new_heap);
+        merge(new_one);
 
-        return std::move((*top)->value);
+        top_tree->rels_.child = nullptr;
+        return top_tree->value_;
     }
 
     const V& peek_top() const {
@@ -225,7 +215,7 @@ class BinomialHeap {
         auto end = std::cend(trees_);
 
         for (auto i = std::next(top); i != end; ++i) {
-            if (compare((*top)->priority, (*i)->priority_))
+            if (compare((*top)->priority_, (*i)->priority_))
                 top = i;
         }
 
@@ -233,7 +223,8 @@ class BinomialHeap {
     }
 
     private:
+    BinomialHeap() = default;
 
     const CMP compare;
-    std::vector<Tree*> trees_;
+    std::list<Tree*> trees_;
 };
