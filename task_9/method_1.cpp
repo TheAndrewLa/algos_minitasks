@@ -3,7 +3,7 @@
 #include <string>
 #include <cassert>
 #include <cstddef>
-#include <ctime>
+#include <chrono>
 
 using usize = std::size_t;
 using std::string;
@@ -45,9 +45,8 @@ int** mat_mul(int** a, int** b, usize n) {
 
 // Passing size of matrix as an command line argument
 int main(int argc, char ** argv) {
-    assert(argc == 2);
-
-    usize size = (usize) std::stoull(string {argv[1]});
+    usize size;
+    std::cin >> size;
 
     int** a = create_mat(size);
     int** b = create_mat(size);
@@ -60,11 +59,11 @@ int main(int argc, char ** argv) {
         for (usize j = 0; j < size; j++)
             std::cin >> b[i][j];
 
-    std::clock_t start = std::clock();
-
+    auto start_time = clock();
     int** res = mat_mul(a, b, size);
+    auto elapsed = clock() - start_time;
 
-    std::cout << std::clock() - start;
+    std::cout << elapsed;
 
     return delete_mat(res, size);
 }

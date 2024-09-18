@@ -3,15 +3,18 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
-    BinomialHeap<std::string> heap{"Hello World", 1};
+    BinomialHeap<std::string, int, std::less<int>> heap{"Hello World", 1};
 
-    heap.insert(12, "Goodbye world!");
-    heap.insert(2, "Goodbye world!");
-    heap.insert(22, "i");
-    heap.insert(32, "Love");
-    heap.insert(-2, "C++");
+    heap.insert("Goodbye world!", 12);
+    heap.insert("i", 22);
+    heap.insert("And", 23);
+    heap.insert("hate", 1);
+    heap.insert("Python", 2);
+    heap.insert("Love", 32);
 
-    std::cout << heap.peek_top();
+    std::cout << heap.peek_top() << '\n';
+    std::cout << heap.peek_top() << '\n';
+    std::cout << heap.extract_top() << '\n';
 
     return 0;
 }

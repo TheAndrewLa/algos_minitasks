@@ -7,6 +7,10 @@
 #include <cmath>
 #include <cassert>
 
+#include <string>
+
+using std::string;
+
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
 
@@ -17,8 +21,6 @@ using i8 = int8_t;
 using u8 = uint8_t;
 
 using real32 = float;
-
-// Just for fun
 
 union ip_address {
     struct {
@@ -49,17 +51,17 @@ class ip_hasher {
     public:
     ip_hasher() = default;
 
-    ip_hasher(usize base) {
+    ip_hasher(usize base) noexcept {
         rehash(base);
     }
-    
-    void rehash(usize base) {
+
+    void rehash(usize base) noexcept {
         base_ = base;
 
-        a1_ = rand() % base;
-        a2_ = rand() % base;
-        a3_ = rand() % base;
-        a4_ = rand() % base;
+        a1_ = 1 + (rand() % (base - 1));
+        a2_ = 1 + (rand() % (base - 1));
+        a3_ = 1 + (rand() % (base - 1));
+        a4_ = 1 + (rand() % (base - 1));
     }
 
     inline usize hash(ip_address addr) const {
@@ -91,20 +93,23 @@ class bloom_filter {
         usize k = -ceilf(log2f(error)); // number of hash functions
         usize b = -ceilf(log2f(error) / logf(2.0f)); // number of bits to one object
 
-        bitset_ = std::vector<usize>((b * size) / sizeof(usize), 0);
+        assert(k != 0);
+        assert(b != 0);
 
-        std::srand(std::time(nullptr));
+        size_ = b * size;
+        bitset_ = std::vector<bool>(size_, false);
+
         hashers_ = std::vector<ip_hasher>(k, {hash_base});
     }
 
     void insert(ip_address addr) {
         for (const auto& i : hashers_)
-            set_bit(i.hash(addr), true);
+            bitset_[i.hash(addr) % size_] = true;
     }
 
     bool search(ip_address addr) {
         for (auto& i : hashers_) {
-            if (!peek_bit(i.hash(addr)))
+            if (!bitset_[i.hash(addr) % size_])
                 return false;
         }
 
@@ -112,23 +117,46 @@ class bloom_filter {
     }
 
     private:
-    std::vector<usize> bitset_;
+    usize size_;
+    std::vector<bool> bitset_;
     std::vector<ip_hasher> hashers_;
 
     const usize bitset_base = sizeof(usize) * 8;
     const usize hash_base = NearestPrime(1200);
-
-    inline void set_bit(usize index, bool bit) {
-        usize global = index / bitset_base;
-        usize local = index % bitset_base;
-
-        bitset_[global] |= (static_cast<usize>(bit) << local);
-    }
-
-    inline bool peek_bit(usize index) const {
-        usize global = index / bitset_base;
-        usize local = index % bitset_base;
-
-        return ((bitset_[global] >> local) & 0x1);
-    }
 };
+
+void calculate() {
+    std::srand(time(nullptr));
+
+    // First = Number of elements
+    u32 n;
+
+    // Second = Erorr
+    float error;
+
+    std::cin >> n >> error;
+    bloom_filter filter{n, error};
+
+    usize false_positive = 0;
+
+    for (u32 i = 0; i < n / 2; i++) {
+        ip_address addr;
+        addr.mask = i + 4000;
+
+        if (filter.search(addr))
+            false_positive++;
+        
+        filter.insert(addr);
+    }
+
+    std::cout << false_positive << '\n';
+
+}
+
+int main(int argc, char** argv) {
+    while (1) {
+        calculate();
+    }
+
+    return 0;
+}

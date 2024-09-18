@@ -3,17 +3,18 @@
 #include <string>
 #include <cassert>
 #include <cstddef>
+#include <chrono>
 
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
 using std::string;
 
-#define MATRIX_OFFSET(mat, size, x_offset, y_offset) (int**) ((mat) + (sizeof(int) * (size) * (x_offset)) + (sizeof(int) * (y_offset)))
+#define MATRIX_OFFSET(mat, size, y_offset, x_offset) (mat + ((size) * (y_offset)) + (x_offset))
 
 int** create_mat(usize n) {
     int** res = new int*[n];
     for (usize i = 0; i < n; i++)
-        res[i] = new int[n]();
+        res[i] = new int[n];
 
     return res;
 }
@@ -27,20 +28,24 @@ int delete_mat(int** mat, usize n) {
     return 0;
 }
 
-void mat_add_assign(int** a, int** b, usize size) {
+int** mat_add_assign(int** a, int** b, usize size) {
     assert(a != nullptr && b != nullptr);
 
     for (usize i = 0; i < size; i++)
         for (usize j = 0; j < size; j++)
             a[i][j] += b[i][j];
+
+    return a;
 }
 
-void mat_sub_assign(int** a, int** b, usize size) {
+int** mat_sub_assign(int** a, int** b, usize size) {
     assert(a != nullptr && b != nullptr);
 
     for (usize i = 0; i < size; i++)
         for (usize j = 0; j < size; j++)
             a[i][j] -= b[i][j];
+
+    return a;
 }
 
 int** mat_add(int** a, int** b, usize size) {
@@ -93,90 +98,105 @@ int** mat_mul_recursive(int** in_a, int** in_b, usize n) {
     usize half = n / 2;
 
     // 8 matrices
-    int** a = MATRIX_OFFSET(in_a, n, 0, 0);
-    int** b = MATRIX_OFFSET(in_a, n, 0, half);
-    int** c = MATRIX_OFFSET(in_a, n, half, 0);
-    int** d = MATRIX_OFFSET(in_a, n, half, half);
+    int** a = create_mat(half);
+    int** b = create_mat(half);
+    int** c = create_mat(half);
+    int** d = create_mat(half);
 
-    int** e = MATRIX_OFFSET(in_b, n, 0, 0);
-    int** f = MATRIX_OFFSET(in_b, n, 0, half);
-    int** g = MATRIX_OFFSET(in_b, n, half, 0);
-    int** h = MATRIX_OFFSET(in_b, n, half, half);
+    int** e = create_mat(half);
+    int** f = create_mat(half);
+    int** g = create_mat(half);
+    int** h = create_mat(half);
+
+    for (usize i = 0; i < half; i++) {
+        for (usize j = 0; j < half; j++) {
+            a[i][j] = in_a[i][j];
+            b[i][j] = in_a[i][j + half];
+            c[i][j] = in_a[i + half][j];
+            d[i][j] = in_a[i + half][j + half];
+
+            e[i][j] = in_b[i][j];
+            f[i][j] = in_b[i][j + half];
+            g[i][j] = in_b[i + half][j];
+            h[i][j] = in_b[i + half][j + half];
+        }
+    }
 
     int** tmp_mat = create_mat(half);
     int** tmp_mat_2 = create_mat(half);
 
-    int** fh = mat_sub(f, h, half);
+    zero_mat(tmp_mat, half);
+    zero_mat(tmp_mat_2, half);
 
-    mat_add_assign(tmp_mat, f, half);
-    mat_sub_assign(tmp_mat, h, half);
+    tmp_mat = mat_add_assign(tmp_mat, f, half);
+    tmp_mat = mat_sub_assign(tmp_mat, h, half);
 
     int** p1 = mat_mul_recursive(a, tmp_mat, half);
 
     zero_mat(tmp_mat, half);
 
-    mat_add_assign(tmp_mat, a, half);
-    mat_add_assign(tmp_mat, b, half);
+    tmp_mat = mat_add_assign(tmp_mat, a, half);
+    tmp_mat = mat_add_assign(tmp_mat, b, half);
 
     int** p2 = mat_mul_recursive(tmp_mat, h, half);
 
     zero_mat(tmp_mat, half);
 
-    mat_add_assign(tmp_mat, c, half);
-    mat_add_assign(tmp_mat, d, half);
+    tmp_mat = mat_add_assign(tmp_mat, c, half);
+    tmp_mat = mat_add_assign(tmp_mat, d, half);
 
     int** p3 = mat_mul_recursive(tmp_mat, e, half);
 
     zero_mat(tmp_mat, half);
 
-    mat_add_assign(tmp_mat, g, half);
-    mat_add_assign(tmp_mat, e, half);
+    tmp_mat = mat_add_assign(tmp_mat, g, half);
+    tmp_mat = mat_add_assign(tmp_mat, e, half);
 
     int** p4 = mat_mul_recursive(d, tmp_mat, half);
     
     zero_mat(tmp_mat, half);
     zero_mat(tmp_mat_2, half);
 
-    mat_add_assign(tmp_mat, a, half);
-    mat_add_assign(tmp_mat, d, half);
+    tmp_mat = mat_add_assign(tmp_mat, a, half);
+    tmp_mat = mat_add_assign(tmp_mat, d, half);
 
-    mat_add_assign(tmp_mat_2, e, half);
-    mat_add_assign(tmp_mat_2, h, half);
+    tmp_mat_2 = mat_add_assign(tmp_mat_2, e, half);
+    tmp_mat_2 = mat_add_assign(tmp_mat_2, h, half);
 
     int** p5 = mat_mul_recursive(tmp_mat, tmp_mat_2, half);
 
     zero_mat(tmp_mat, half);
     zero_mat(tmp_mat_2, half);
 
-    mat_add_assign(tmp_mat, b, half);
-    mat_sub_assign(tmp_mat, d, half);
+    tmp_mat = mat_add_assign(tmp_mat, b, half);
+    tmp_mat = mat_sub_assign(tmp_mat, d, half);
 
-    mat_add_assign(tmp_mat_2, g, half);
-    mat_add_assign(tmp_mat_2, h, half);
+    tmp_mat_2 = mat_add_assign(tmp_mat_2, g, half);
+    tmp_mat_2 = mat_add_assign(tmp_mat_2, h, half);
 
     int** p6 = mat_mul_recursive(tmp_mat, tmp_mat_2, half);
 
     zero_mat(tmp_mat, half);
     zero_mat(tmp_mat_2, half);
 
-    mat_add_assign(tmp_mat, a, half);
-    mat_sub_assign(tmp_mat, c, half);
+    tmp_mat = mat_add_assign(tmp_mat, a, half);
+    tmp_mat = mat_sub_assign(tmp_mat, c, half);
 
-    mat_add_assign(tmp_mat_2, e, half);
-    mat_add_assign(tmp_mat_2, g, half);
+    tmp_mat_2 = mat_add_assign(tmp_mat_2, e, half);
+    tmp_mat_2 = mat_add_assign(tmp_mat_2, g, half);
 
     int** p7 = mat_mul_recursive(tmp_mat, tmp_mat_2, half);
 
     int** q1 = mat_add(p5, p4, half);
-    mat_sub_assign(q1, p2, half);
-    mat_add_assign(q1, p6, half);
+    q1 = mat_sub_assign(q1, p2, half);
+    q1 = mat_add_assign(q1, p6, half);
 
     int** q2 = mat_add(p1, p2, half);
     int** q3 = mat_add(p3, p4, half);
 
     int** q4 = mat_add(p1, p5, half);
-    mat_sub_assign(q4, p3, half);
-    mat_sub_assign(q4, p7, half);
+    q4 = mat_sub_assign(q4, p3, half);
+    q4 = mat_sub_assign(q4, p7, half);
 
     delete_mat(p1, half);
     delete_mat(p2, half);
@@ -188,22 +208,14 @@ int** mat_mul_recursive(int** in_a, int** in_b, usize n) {
 
     int** res = create_mat(n);
 
-    // Perform copying
-    for (usize i = 0; i < half; i++)
-        for (usize j = 0; j < half; j++)
+    for (usize i = 0; i < half; i++) {
+        for (usize j = 0; j < half; j++) {
             res[i][j] = q1[i][j];
-
-    for (usize i = 0; i < half; i++)
-        for (usize j = half; j < n; j++)
-            res[i][j] = q2[i][j - half];
-
-    for (usize i = half; i < n; i++)
-        for (usize j = 0; j < half; j++)
-            res[i][j] = q3[i - half][j];
-
-    for (usize i = half; i < n; i++)
-        for (usize j = half; j < n; j++)
-            res[i][j] = q4[i - half][j - half];
+            res[i][j + half] = q2[i][j];
+            res[i + half][j] = q3[i][j];
+            res[i + half][j + half] = q4[i][j];
+        }
+    }
 
     delete_mat(q1, half);
     delete_mat(q2, half);
@@ -214,10 +226,9 @@ int** mat_mul_recursive(int** in_a, int** in_b, usize n) {
 }
 
 // Passing size of matrix as an command line argument
-int main(int argc, char ** argv) {
-    assert(argc == 2);
-
-    usize size = (usize) std::stoull(string {argv[1]});
+int main(int argc, char** argv) {
+    usize size;
+    std::cin >> size;
 
     int** a = create_mat(size);
     int** b = create_mat(size);
@@ -232,11 +243,11 @@ int main(int argc, char ** argv) {
         for (usize j = 0; j < size; j++)
             std::cin >> b[i][j];
 
-    std::clock_t start = std::clock();
-    
-    int** res = mat_mul(a, b, size);
+    auto start_time = clock();
+    int** res = mat_mul_recursive(a, b, size);
+    auto elapsed = clock() - start_time;
 
-    std::cout << std::clock() - start;
+    std::cout << elapsed;
 
     return delete_mat(res, size);
 }

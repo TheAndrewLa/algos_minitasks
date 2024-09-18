@@ -8,7 +8,7 @@ struct TreeNode {
     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
 };
- 
+
 class Solution {
     TreeNode* buildNode(std::vector<int>::const_iterator start, std::vector<int>::const_iterator end) {
         if (start == end)

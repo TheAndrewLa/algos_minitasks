@@ -83,8 +83,6 @@ class MathParser {
         5, 5,
     };
 
-    static constexpr u16 operator_masks[] {};
-
     static constexpr u16 associativities[] {
         0, 0, 0, 0, 0,
         0, 0, 0, 1,
@@ -98,6 +96,8 @@ class MathParser {
         2,
         2, 2,
     };
+
+    static constexpr u16 operator_masks[] {};
 
     // Brackets
     static const usize brackets_count = 6;
