@@ -22,15 +22,21 @@ class graph {
     vertex_count_ = count;
   }
 
-  graph(const graph& g) = delete;  // TODO implement
-
-  graph(graph&& g) = delete;  // TODO implement
+  // TODO: implement copy/move ctors
+  graph(const graph& g) = delete;
+  graph(graph&& g) = delete;
 
   ~graph() {}
 
   void add_edge(vertex u, vertex v, std::size_t weight) {}
 
-  int run_prims(int start_vertex) const {
+  std::pair<int, int> calc_mst_weights() {
+    // TODO: run "this->prims" method to each connection component of graph
+    return std::pair(0, 0);
+  }
+
+ private:
+  int prims(int start_vertex) const {
     std::priority_queue<edge, std::vector<edge>, std::greater<edge>> queue;
 
     std::vector<int> weights(vertex_count_, INF);
@@ -70,7 +76,6 @@ class graph {
     return totalWeight;
   }
 
- private:
   std::size_t vertex_count_;
   std::list<edge>* adj_;
 

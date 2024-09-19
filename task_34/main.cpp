@@ -1,16 +1,21 @@
 #include <iostream>
 #include "library/graph.hpp"
 
-int main(int, char**) {
-  graph g(5);
-  g.add_edge(0, 1, 3);
-  g.add_edge(0, 4, 1);
-  g.add_edge(1, 4, 4);
-  g.add_edge(1, 2, 5);
-  g.add_edge(2, 3, 2);
-  g.add_edge(3, 4, 7);
-  g.add_edge(2, 4, 6);
+int main(void) {
+  int vertex_count, edge_count;
+  std::cin >> vertex_count >> edge_count;
 
-  std::cout << g.run_prims(0) << std::endl;
+  graph g(vertex_count);
+
+  for (int i = 0; i < edge_count; i++) {
+    int u, v, weight;
+    std::cin >> u >> v >> weight;
+
+    g.add_edge(u, v, weight);
+  }
+
+  std::pair<int, int> result = g.calc_mst_weights();
+  std::cout << result.first << ' ' << result.second << std::endl;
+
   return 0;
 }
