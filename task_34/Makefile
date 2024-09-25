@@ -1,3 +1,6 @@
+CXX = clang++
+COMPILE_OPTS = -std=c++20 -Wall -DTEST
+
 EXE_CLANG = build/solution_exe
 
 IN = $(wildcard tests/*.in)
@@ -12,7 +15,7 @@ build:
 	mkdir -p build
 
 $(EXE_CLANG): main.cpp | build
-	clang++ -std=c++20 main.cpp -o $@
+	$(CXX) $(COMPILE_OPTS) main.cpp -o $@
 
 test: $(PASSED)
 	@echo "All tests passed"

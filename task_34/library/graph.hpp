@@ -2,13 +2,22 @@
 #define library_binary_heap_h
 
 #include <cstddef>
+#include <functional>
 #include <list>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
-// Quite old stuff
+template <typename T>
+struct netgraph {
+  using vertex_type = T;
+};
+
+template <std::copyable T>
+void foo() {
+  std::priority_queue<int, std::vector<int>, std::greater<int>> pq;
+}
 
 class graph {
  public:
