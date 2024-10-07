@@ -46,22 +46,22 @@ struct disjoint_set {
 
   // disjoint_set& operator=(disjoint_set&& set) { return *this; }
 
-  unsigned optimizedFind(int x) {
+  unsigned optimized_find(int x) {
 
     // Path compression optimization - parent of element X will be set 'root'
     // Don't touch ranks in this function
     // ('Cause we don't change tree structure of set, just create short path to the root)
 
     if (parents_[x] != x) {
-      parents_[x] = optimizedFind(parents_[x]);
+      parents_[x] = optimized_find(parents_[x]);
     }
 
     return parents_[x];
   }
 
-  void optimizedUnion(int x, int y) {
-    unsigned setX = optimizedFind(x);
-    unsigned setY = optimizedFind(y);
+  void optimized_union(int x, int y) {
+    unsigned setX = optimized_find(x);
+    unsigned setY = optimized_find(y);
 
     // If sets are same => union don't need to be done
 

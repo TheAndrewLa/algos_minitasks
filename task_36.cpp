@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+#include <algorithm>
 #include <vector>
 
 struct disjoint_set;
@@ -52,27 +53,26 @@ struct disjoint_set {
   }
 
   // TODO: implement copy-move operators
+  // TODO: Copy-swap idiom here
 
   // disjoint_set& operator=(const disjoint_set& set) { return *this; }
 
   // disjoint_set& operator=(disjoint_set&& set) { return *this; }
 
-  unsigned optimizedFind(int x) {
+  unsigned optimized_find(int x) {
 
     // Path compression optimization - parent of element X will be set 'root'
-    // Don't touch ranks in this function
-    // ('Cause we don't change tree structure of set, just create short path to the root)
 
     if (parents_[x] != x) {
-      parents_[x] = optimizedFind(parents_[x]);
+      parents_[x] = optimized_find(parents_[x]);
     }
 
     return parents_[x];
   }
 
-  void optimizedUnion(int x, int y) {
-    unsigned setX = optimizedFind(x);
-    unsigned setY = optimizedFind(y);
+  void optimized_union(int x, int y) {
+    unsigned setX = optimized_find(x);
+    unsigned setY = optimized_find(y);
 
     // If sets are same => union don't need to be done
 
@@ -108,6 +108,9 @@ struct disjoint_set {
 struct task {
   task(char id, std::size_t deadline, std::size_t penalty) : identifier_(id), deadline_(deadline), penalty_(penalty) {}
 
+  inline std::size_t deadline() const { return deadline_; }
+  inline std::size_t penalty() const { return penalty_; }
+
  private:
   friend std::string std::to_string(const task& task);
 
@@ -142,7 +145,22 @@ std::string std::to_string(const disjoint_set& set) {
   return str;
 }
 
-void greedy_planning(const std::vector<task>& tasks, std::vector<task>& result) {}
+void naive_planning(const std::vector<task>& tasks, std::vector<task>& result) {
+  std::vector<task> tasks_copy(tasks);
+  result.reserve(tasks_copy.size());
+
+  for (std::size_t i = 0; i < tasks_copy.size(); ++i) {
+    auto max_it = tasks_copy.begin();
+    for (auto it = tasks_copy.begin() + 1; it != tasks_copy.end(); ++it) {
+      if (max_it->penalty() < it->penalty()) {
+        max_it = it;
+      }
+    }
+
+    result.push_back(*max_it);
+    tasks_copy.erase(max_it);
+  }
+}
 
 void optimal_planning(const std::vector<task>& tasks, std::vector<task>& result) {}
 
@@ -156,10 +174,10 @@ int main() {
 
   std::vector<task> plan1, plan2;
 
-  greedy_planning(tasks, plan1);
+  naive_planning(tasks, plan1);
   optimal_planning(tasks, plan2);
 
-  std::cout << "GREEDY PLAN:" << std::endl;
+  std::cout << "GREEDY PLAN, O(N^2), actually O(N*logN):" << std::endl;
 
   for (const auto& i : plan1) {
     std::cout << std::to_string(i) << std::endl;
@@ -167,7 +185,7 @@ int main() {
 
   std::cout << std::endl;
 
-  std::cout << "OPTIMAL PLAN:" << std::endl;
+  std::cout << "OPTIMAL PLAN, O(N * alpha(N)):" << std::endl;
 
   for (const auto& i : plan2) {
     std::cout << std::to_string(i) << std::endl;
