@@ -106,6 +106,7 @@ struct disjoint_set {
 };
 
 struct task {
+  task() = delete;
   task(char id, std::size_t deadline, std::size_t penalty) : identifier_(id), deadline_(deadline), penalty_(penalty) {}
 
   inline std::size_t deadline() const { return deadline_; }
@@ -147,9 +148,9 @@ std::string std::to_string(const disjoint_set& set) {
 
 void naive_planning(const std::vector<task>& tasks, std::vector<task>& result) {
   std::vector<task> tasks_copy(tasks);
-  result.reserve(tasks_copy.size());
+  result.resize(tasks_copy.size(), task('\0', 0, 0));
 
-  for (std::size_t i = 0; i < tasks_copy.size(); ++i) {
+  for (auto res_it = result.begin(); res_it != result.end(); ++res_it) {
     auto max_it = tasks_copy.begin();
     for (auto it = tasks_copy.begin() + 1; it != tasks_copy.end(); ++it) {
       if (max_it->penalty() < it->penalty()) {
@@ -157,7 +158,7 @@ void naive_planning(const std::vector<task>& tasks, std::vector<task>& result) {
       }
     }
 
-    result.push_back(*max_it);
+    *res_it = *max_it;
     tasks_copy.erase(max_it);
   }
 }
@@ -177,7 +178,7 @@ int main() {
   naive_planning(tasks, plan1);
   optimal_planning(tasks, plan2);
 
-  std::cout << "GREEDY PLAN, O(N^2), actually O(N*logN):" << std::endl;
+  std::cout << "GREEDY PLAN, O(N^2):" << std::endl;
 
   for (const auto& i : plan1) {
     std::cout << std::to_string(i) << std::endl;
