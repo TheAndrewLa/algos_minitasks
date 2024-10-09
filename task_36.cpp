@@ -95,7 +95,7 @@ struct disjoint_set {
 
   void init_set() {
     for (std::size_t i = 0; i < size_; ++i) {
-      tree_sizes_[i] = 0;
+      tree_sizes_[i] = 1;
       parents_[i] = i;
     }
   }
