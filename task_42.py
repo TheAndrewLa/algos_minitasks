@@ -1,55 +1,58 @@
-from collections import namedtuple
 import random
+from recordclass import recordclass
 
-TreapNode = namedtuple('TreapNode', ['position', 'priority', 'count', 'value', 'left', 'right'])
+rand_set = set()
 
-def newNode(position: int, value: int) -> TreapNode:
-    new = TreapNode()
+TreapNode = recordclass('TreapNode', ['position', 'priority', 'count', 'value', 'sub_value', 'left', 'right'])
 
-    new.position = position
-    new.priority = random.randrange(1, 1000) # REPLACE IT WITH CORRECT RANDOM
-    new.count = 0
-    new.value = value
-    new.left = new.right = None
+def newNode(position: int, value: int):
+    priority = random.randrange(1, 1000)
 
-    return new
+    while priority in rand_set:
+        priority = random.randrange(1, 1000)
+
+    rand_set.add(priority)
+
+    return TreapNode(position, random.randrange(1000, 9999), 1, value, value, None, None)
 
 
 class Treap:
     def __init__(self, value):
         self.__root = newNode(0, value)
 
-    def insert(self, index: int , value: int) -> None:
+    def insert(self, index: int , value: int):
         new = newNode(index, value)
         t1, t2 = Treap._split_by_size(self.__root, index - 1)
 
         self.__root = Treap._merge(Treap._merge(t1, new), t2)
 
-
-    def remove(self, index: int) -> None:
+    def remove(self, index: int):
         t1, r = Treap._split_by_size(self.__root, index - 1)
         _, t2 = Treap._split_by_size(r, 1)
 
         self.__root = Treap._merge(t1, t2)
 
     def sum(self, start: int, end: int) -> int:
-        pass
+        # split -> get_sum -> merge
+        t1, t2 = Treap._split_by_size(self.__root, start - 1)
+        t3, t4 = Treap._split_by_size(t2, end - start + 1)
 
-    # This is internal stuff below
+        val = t3.sub_value
+
+        self.__root = Treap._merge(t1, Treap._merge(t3, t4))
+
+        return val
 
     @staticmethod
     def _split_by_size(node: TreapNode, key):
         if not node:
             return (None, None)
 
-        if not node.left:
-            # What should I return here?????
-            return (node, None)
-        
-        c_left = node.left.count
+        c_left = 0 if (not node.left) else node.left.count
+
         if c_left >= key:
             t1, t2 = Treap._split_by_size(node.left, key)
-            
+
             node.left = t2
             Treap._update(node)
 
@@ -73,7 +76,7 @@ class Treap:
         r_value = 0 if not node.right else node.right.value
 
         node.count = 1 + l_count + r_count
-        node.value += l_value + r_value
+        node.sub_value = l_value + r_value + node.value
 
     @staticmethod
     def _merge(t1: TreapNode, t2: TreapNode):
@@ -88,4 +91,20 @@ class Treap:
         else:
             t2.left = Treap._merge(t1, t2.left)
             return t2
+
+
+a = Treap(10)
+a.insert(1, 11)
+a.insert(2, 12)
+a.insert(3, 13)
+a.insert(4, 14)
+a.insert(6, 16)
+a.insert(5, 15)
+
+print(a.sum(2, 3))
+
+a.remove(2)
+a.remove(3)
+
+print(a.sum(2, 3))
 

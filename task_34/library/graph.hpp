@@ -14,11 +14,6 @@ struct netgraph {
   using vertex_type = T;
 };
 
-template <std::copyable T>
-void foo() {
-  std::priority_queue<int, std::vector<int>, std::greater<int>> pq;
-}
-
 class graph {
  public:
   using vertex = int;
